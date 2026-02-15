@@ -98,3 +98,30 @@ assumptions:
   statement: 'Reuse/reman is represented via lifetime extension: lognormal mu is shifted
     by ln(lifetime_multiplier_ge_1); sigma unchanged.'
   replacement_plan: N/A
+- id: baci_trade_metric_value_based_temp
+  status: confirmed
+  source: user
+  scope: trade.data
+  impact: high
+  introduced_in_version: v4.9
+  statement: BACI OD weights are built from bilateral trade value (`v`, thousand USD)
+    rather than quantity (`q`) because `q` has substantial missingness.
+  replacement_plan: N/A
+- id: baci_hs22_code_baskets_temp
+  status: confirmed
+  source: user
+  scope: trade.classification
+  impact: high
+  introduced_in_version: v4.9
+  statement: HS22 commodity baskets for Zn/Ni/Sn OD construction use code sets {concentrate,
+    refined_metal, scrap} with tin refined including 800300 (bars/rods/profiles/wire).
+  replacement_plan: N/A
+- id: baci_hs92_hs22_stitch_rule_temp
+  status: confirmed
+  source: user
+  scope: trade.timeseries
+  impact: medium
+  introduced_in_version: v4.9
+  statement: HS92 is used for years < 2022 and HS22 for years >= 2022 after UNSD concordance
+    linkage; no explicit chain-link scaling factor is applied.
+  replacement_plan: N/A

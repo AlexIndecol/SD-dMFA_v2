@@ -1,5 +1,61 @@
 # Changelog
 
+## v4.9
+- Filled required baseline historic exogenous inputs using CRM source data and internal cross-checks:
+  - `data/exogenous/in_use_stock_observed_kt.csv`
+  - `data/exogenous/gas_to_use_observed_kt_per_yr.csv`
+  - `data/exogenous/od_preference_weight_0_1.csv`
+  - `data/exogenous/capacity_stage_observed_kt_per_yr.csv`
+  - `data/exogenous/lifetime_lognormal_mu.csv`
+  - `data/exogenous/lifetime_lognormal_sigma.csv`
+- Implemented BACI trade ingestion linked through official UNSD concordance (`HS92` <-> `HS22`) in:
+  - `scripts/data/fill_baseline_required_exogenous.py`
+- Added BACI trade concordance and overlap diagnostics artifacts:
+  - `data/reference/baci_hs22_to_hs92_concordance_used.csv`
+  - `data/reference/baci_hs92_vs_hs22_overlap_diagnostics.csv`
+- Fixed data generation bugs in the baseline fill pipeline:
+  - corrected in-use stock inflow handling (prevented zero-stock artifact),
+  - corrected merge-suffix issues in time-extension helpers,
+  - corrected multi-material duplication in backcast extension.
+- Corrected mass-unit normalization to `kt` in baseline ETL:
+  - BGS production/trade and OWID mine-production source values are ingested as tonnes and converted to `kt` before writing exogenous CSVs.
+  - Regenerated baseline required historic exogenous files after conversion.
+- Added report-support cross-check:
+  - Tin supplementary dataset (`jiec13459-sup-0002-suppmat.xlsx`) 2017 reference values are now consistent in magnitude with generated Sn stage capacities after unit conversion.
+- Added explicit provenance documentation for required baseline historic exogenous series:
+  - `docs/EXOGENOUS_BASELINE_PROVENANCE.md`
+  - linked from variable docs in `data/exogenous/*.md`.
+- Added workflow visualization docs:
+  - `docs/WORKFLOW_VISUALS.md` (embedded Mermaid diagrams for coupled model and baseline exogenous ETL),
+  - `docs/diagrams/exogenous_baseline_workflow.mmd`.
+- Added preconfigured inspection notebooks in-repo:
+  - `notebooks/00_Quickstart.ipynb` through `notebooks/06_Indicators_Viewer.ipynb`,
+  - `notebooks/README.md`.
+- Patched notebook root path handling so notebooks work from either repo root or `notebooks/`.
+- Closed BACI trade assumption confirmations (user selected 1.A, 2.A, 3.A):
+  - keep value-based OD weights (`v`),
+  - include `800300` in tin `refined_metal`,
+  - keep HS92<2022 and HS22>=2022 without chain-link scaling.
+
+## v4.8
+- Implemented a first executable annual coupled engine across SD, dMFA, and OD trade allocation:
+  - `src/crm_model/coupling.py`: concrete `run_coupled_year` orchestration with shared stabilizer smoothing and state carry-over.
+  - `src/crm_model/sd_model.py`: deterministic fallback SD step (demand, capacities, rates, lifetime multiplier, price feedback).
+  - `src/crm_model/dmfa_model.py`: deterministic fallback dMFA step (I_use, EoL outflows, commodity stocks, scrap split, production, export caps).
+- Fixed exogenous ingestion interface mismatch and numeric coercion:
+  - `src/crm_model/io_exogenous.py` now supports the `run.py` call signature and coerces `value` to numeric (blank -> NaN).
+- Reworked run pipeline:
+  - `src/crm_model/run.py` now loads merged parameters/scenarios, runs full annual coupling in non-dry mode, computes indicators, and exports required run artifacts.
+  - Added stop-the-run enforcement for missing/empty required historic exogenous inputs unless TEMP-approved in `configs/assumptions.yml`.
+  - Added per-run `assumptions_used.yml` and `run_note.md`.
+- Improved CLI robustness:
+  - `src/crm_model/cli.py` now falls back to `argparse` when `typer` is unavailable.
+- Added governance docs required by `AGENTS.md`:
+  - `docs/TASK_BOARD.md`
+  - `docs/DECISION_LOG.md`
+  - `docs/RISKS.md`
+  - `docs/ASSUMPTIONS.md`
+
 ## v4.7
 - Confirmed modelling decisions in configs/assumptions.yml:
   - OD matrices are **weights** (relative preferences), not shares.

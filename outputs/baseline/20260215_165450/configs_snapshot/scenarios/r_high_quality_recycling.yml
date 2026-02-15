@@ -1,0 +1,41 @@
+schema_version: '1.0'
+id: r_high_quality_recycling
+inherits: baseline
+description: Improve recovery in sorting/preprocessing and yield in secondary refining.
+requires_user_inputs:
+- Baseline recovery_rate and recycling_yield (by m and process).
+- Target improvement levels and ramp timing.
+levers:
+  recovery_rate_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+  recycling_yield_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+notes:
+- Use realistic ceilings; higher yields can increase secondary availability and reduce
+  residues.

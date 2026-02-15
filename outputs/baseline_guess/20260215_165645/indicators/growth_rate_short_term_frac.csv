@@ -1,0 +1,2 @@
+note
+"not computed; formula not implemented in engine: growth_rate_short_term_frac[t,r] = (demand_kt_per_yr[t,r] - demand_kt_per_yr[t-1,r]) / demand_kt_per_yr[t-1,r]"

@@ -5,3 +5,4 @@ Observed gross additions to stock (inflow into use phase).
 - Unit: kt/yr
 - Recommended coverage: historic period 1870–2020 (calibration).
 - Used to build legacy cohorts via warm-up (you selected option A).
+- Detailed provenance and derivation: `docs/EXOGENOUS_BASELINE_PROVENANCE.md#gas_to_use_observed_kt_per_yr`

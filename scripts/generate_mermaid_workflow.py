@@ -16,36 +16,36 @@ def load_yaml(p: Path) -> dict:
         return yaml.safe_load(f)
 
 def main():
-    c = load_yaml(CFG/"coupling.yml")
+    c = load_yaml(CFG / "coupling.yml")
     ex = c["exchange"]
 
-    def fmt_vars(items):
-        vs = [x["var"] for x in items]
-        # keep diagram readable: show up to ~8 vars then +n
-        if len(vs) > 8:
-            return "\n".join(vs[:8] + [f"+{len(vs)-8} more"])
-        return "\n".join(vs)
+    n_sd_dmfa = len(ex.get("sd_to_dmfa", []))
+    n_dmfa_sd = len(ex.get("dmfa_to_sd", []))
+    n_trade_out = len(ex.get("trade_outputs", []))
 
-    sd_to_dmfa = fmt_vars(ex.get("sd_to_dmfa", []))
-    dmfa_to_sd = fmt_vars(ex.get("dmfa_to_sd", []))
-    trade_out = fmt_vars(ex.get("trade_outputs", []))
+    # Keep syntax conservative for older Mermaid renderers.
+    mermaid = textwrap.dedent(
+        f"""\
+        %% Auto-generated: do not edit by hand.
+        %% Source: configs/coupling.yml
+        %% sd_to_dmfa vars: {n_sd_dmfa}
+        %% dmfa_to_sd vars: {n_dmfa_sd}
+        %% trade_outputs vars: {n_trade_out}
 
-    mermaid = f"""%% Auto-generated: do not edit by hand.
-%% Source: configs/coupling.yml
+        graph LR
+          SD[SD]
+          DMFA[dMFA]
+          TRADE[OD Trade]
+          IND[Indicators]
 
-flowchart LR
-  sd[SD (BPTK-Py)]
-  dmfa[dMFA (flodym)]
-  trade[OD Trade]
-  ind[Indicators]
-
-  sd -->|"{sd_to_dmfa}"| dmfa
-  dmfa -->|"{dmfa_to_sd}"| sd
-  trade -->|"{trade_out}"| sd
-  sd --> ind
-  dmfa --> ind
-  trade --> ind
-"""
+          SD -->|sd_to_dmfa| DMFA
+          DMFA -->|dmfa_to_sd| SD
+          TRADE -->|trade_outputs| SD
+          SD --> IND
+          DMFA --> IND
+          TRADE --> IND
+        """
+    )
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(mermaid, encoding="utf-8")
     print(f"Wrote {OUT}")

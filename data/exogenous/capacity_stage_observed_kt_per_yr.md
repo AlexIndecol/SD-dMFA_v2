@@ -5,3 +5,4 @@ Observed or assumed capacity ceilings by process stage.
 - Unit: kt/yr
 - Used by SD and OD-trade to apply smoothed capacity ceilings (see configs/time.yml stabilizers).
 - Provide historic capacities if available (for calibration), and scenario capacities for reporting.
+- Detailed provenance and derivation: `docs/EXOGENOUS_BASELINE_PROVENANCE.md#capacity_stage_observed_kt_per_yr`

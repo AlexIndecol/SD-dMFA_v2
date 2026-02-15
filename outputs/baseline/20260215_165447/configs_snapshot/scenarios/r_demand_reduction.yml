@@ -1,0 +1,25 @@
+schema_version: '1.0'
+id: r_demand_reduction
+inherits: baseline
+description: Reduce demand via efficiency/sufficiency policies (multiplier on demand).
+requires_user_inputs:
+- Demand reduction path by material and end-use (or global multiplier).
+- Whether reduction applies to total demand or selected end-uses.
+levers:
+  demand_multiplier_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: 1.0
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+notes:
+- SD-facing; ensure demand allocation (use_share_j_frac) remains consistent.

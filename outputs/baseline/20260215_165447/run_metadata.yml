@@ -1,0 +1,52 @@
+scenario_id: baseline
+dry_run: true
+time:
+  start_year: 1820
+  end_year: 2100
+  dt_years: 1
+  time_index_name: t
+periods:
+  spinup:
+    start_year: 1820
+    end_year: 1870
+    inclusive_end: false
+    purpose: optional warm-up
+  historic:
+    start_year: 1870
+    end_year: 2019
+    inclusive_end: true
+    purpose: calibration
+  reporting:
+    start_year: 2020
+    end_year: 2100
+    inclusive_end: true
+    purpose: results
+missing_required_historic_inputs:
+- capacity_stage_observed_kt_per_yr
+- gas_to_use_observed_kt_per_yr
+- in_use_stock_observed_kt
+- lifetime_lognormal_mu
+- lifetime_lognormal_sigma
+- od_preference_weight_0_1
+temp_covered_missing_required_historic_inputs: []
+series_written:
+- byproduct_primary_production_kt_per_yr
+- capacity_stage_observed_kt_per_yr
+- end_use_detail_share_frac
+- gas_to_use_observed_kt_per_yr
+- in_use_stock_observed_kt
+- lifetime_lognormal_mu
+- lifetime_lognormal_sigma
+- lifetime_max_years
+- lifetime_mean_years
+- lifetime_min_years
+- nonsubstitutability_j_0_1
+- od_preference_weight_0_1
+- ore_mined_kt_per_yr
+- reserves_kt
+- resources_kt
+- trade_factor_i_ge_1
+- use_share_j_frac
+- wgi_norm_i_0_1
+note: 'v4.8: annual coupled fallback engine implemented (SD+dMFA+OD trade) with stop-the-run
+  checks for required historic inputs.'

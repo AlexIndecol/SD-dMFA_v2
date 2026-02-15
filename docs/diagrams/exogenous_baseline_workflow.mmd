@@ -1,0 +1,67 @@
+%% Baseline exogenous ETL workflow (historic)
+%% See docs/EXOGENOUS_BASELINE_PROVENANCE.md
+
+graph TD
+  subgraph Sources
+    BGSProd[BGS production csv]
+    BGSTrade[BGS imports exports csv]
+    OWID[OWID mine production]
+    MISOShare[MISO end use shares]
+    MISOLife[MISO lifetime data]
+    BACI92[BACI HS92]
+    BACI22[BACI HS22]
+    UNSD[UNSD HS concordance]
+  end
+
+  subgraph Transform
+    Units[Convert tonnes to kt]
+    MineRef[Mine and refining proxies]
+    TradeMR[Refined imports and exports]
+    GAS[GAS total]
+    SplitJ[Split GAS to end uses]
+    StockDyn[Stock recursion]
+    LifeAgg[Aggregate lifetime stats]
+    MuCalc[Compute lognormal mu]
+    ODLink[Link HS92 and HS22]
+    ODFallback[Pre BACI fallback]
+    ODNorm[Normalize OD weights]
+    CapMap[Map stage capacities]
+  end
+
+  subgraph Outputs
+    GASCSV[gas_to_use_observed_kt_per_yr.csv]
+    STOCKCSV[in_use_stock_observed_kt.csv]
+    ODC[od_preference_weight_0_1.csv]
+    CAPCSV[capacity_stage_observed_kt_per_yr.csv]
+    MUCSV[lifetime_lognormal_mu.csv]
+    SIGCSV[lifetime_lognormal_sigma.csv]
+  end
+
+  BGSProd --> Units
+  BGSTrade --> Units
+  Units --> MineRef
+  Units --> TradeMR
+  OWID --> Units
+  MISOShare --> SplitJ
+  MISOLife --> LifeAgg
+  LifeAgg --> MuCalc
+  BACI92 --> ODLink
+  BACI22 --> ODLink
+  UNSD --> ODLink
+
+  MineRef --> GAS
+  TradeMR --> GAS
+  GAS --> SplitJ
+  SplitJ --> GASCSV
+  SplitJ --> StockDyn
+  StockDyn --> STOCKCSV
+
+  LifeAgg --> SIGCSV
+  MuCalc --> MUCSV
+
+  ODLink --> ODNorm --> ODC
+  ODFallback --> ODNorm
+  BGSTrade --> ODFallback
+
+  MineRef --> CapMap --> CAPCSV
+  GAS --> CapMap

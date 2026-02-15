@@ -1,0 +1,202 @@
+dimension_order:
+- t
+- r
+- m
+- j
+- jd
+- p
+- c
+- o
+- d
+- i
+- a
+dimensions:
+  regions:
+    code: r
+    values:
+    - EU27
+    - CHN
+    - ROW
+    description: model regions
+  materials:
+    code: m
+    values:
+    - Zn
+    - Ni
+    - Sn
+    description: critical raw materials (starter set)
+  end_uses:
+    code: j
+    values:
+    - construction
+    - computers_and_precision_instruments
+    - electrical_equipment
+    - machinery_and_equipment
+    - motor_vehicles_trailers_and_semi_trailers
+    - other_transport_equipment
+    - products_nec
+    description: end-use sectors (7-category working set)
+  stages:
+    code: p
+    values:
+    - primary_extraction
+    - beneficiation_concentration
+    - refining_primary
+    - fabrication_and_manufacturing
+    - use_phase
+    - collection
+    - sorting_preprocessing
+    - recycling_refining_secondary
+    - residue_treatment_disposal
+    - environment
+    description: process / stage nodes (material system)
+  commodities:
+    code: c
+    values:
+    - concentrate
+    - refined_metal
+    - scrap
+    description: traded commodities
+  suppliers:
+    code: i
+    values:
+    - EU27
+    - CHN
+    - ROW
+    description: origin/supplier categories (aligned with regions)
+  destinations:
+    code: d
+    values:
+    - EU27
+    - CHN
+    - ROW
+    description: destination categories (aligned with regions)
+  origins:
+    code: o
+    values:
+    - EU27
+    - CHN
+    - ROW
+    description: origin categories (aligned with regions)
+  age:
+    code: a
+    values:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    - 21
+    - 22
+    - 23
+    - 24
+    - 25
+    - 26
+    - 27
+    - 28
+    - 29
+    - 30
+    - 31
+    - 32
+    - 33
+    - 34
+    - 35
+    - 36
+    - 37
+    - 38
+    - 39
+    - 40
+    - 41
+    - 42
+    - 43
+    - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+    - 50
+    - 51
+    - 52
+    - 53
+    - 54
+    - 55
+    - 56
+    - 57
+    - 58
+    - 59
+    - 60
+    - 61
+    - 62
+    - 63
+    - 64
+    - 65
+    - 66
+    - 67
+    - 68
+    - 69
+    - 70
+    - 71
+    - 72
+    - 73
+    - 74
+    - 75
+    - 76
+    - 77
+    - 78
+    - 79
+    - 80
+    description: age cohorts (years since inflow); max_age=80
+  end_use_detail:
+    code: jd
+    values:
+    - residential_buildings
+    - non_residential_buildings
+    - roads
+    - civil_engineering
+    - machinery
+    - computers
+    - electrical_equipment
+    - motor_vehicles
+    - other_transport_equipment
+    - furniture
+    - printed_matter_and_recorded_media
+    - food_packaging
+    - products_nec_other
+    - vehicle_batteries
+    - batteries_non_vehicle
+    - pv_panels
+    - magnets
+    description: end-use detail categories for CRM tracking (optional hierarchical
+      layer).
+meta:
+  version: v4.7
+  updated: '2026-02-15'
+  notes:
+  - End-use sectors expanded to 7-category set; see docs/END_USES.md.
+  - 'v4: time horizon 1820–2100; added end_use_detail (jd) for optional detailed tracking.'
+  - 'v4.1: periods adjusted to remove 2020 overlap (historic ends 2019).'
+  - 'v4.2: added runnable scaffold (src/), coupling.yml, indicators.yml, env files.'
+  - 'v4.3: added notebook cookbooks and Mermaid workflow diagram scaffolding.'
+  - 'v4.4: added assumptions.yml, reporting.yml, scenario blueprints, and AGENTS.md.'
+  - 'v4.5: indicators.yml regenerated from INDICATORS.md.'
+  - 'v4.6: package consistency scan; added assumptions/reporting/scenario governance
+    and validation script.'
+  - 'v4.7: confirmed commodities dimension values and realized demand definition;
+    added coupling modules skeleton.'

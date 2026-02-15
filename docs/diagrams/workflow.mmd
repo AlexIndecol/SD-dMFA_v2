@@ -1,0 +1,18 @@
+%% Auto-generated: do not edit by hand.
+%% Source: configs/coupling.yml
+%% sd_to_dmfa vars: 8
+%% dmfa_to_sd vars: 9
+%% trade_outputs vars: 4
+
+graph LR
+  SD[SD]
+  DMFA[dMFA]
+  TRADE[OD Trade]
+  IND[Indicators]
+
+  SD -->|sd_to_dmfa| DMFA
+  DMFA -->|dmfa_to_sd| SD
+  TRADE -->|trade_outputs| SD
+  SD --> IND
+  DMFA --> IND
+  TRADE --> IND

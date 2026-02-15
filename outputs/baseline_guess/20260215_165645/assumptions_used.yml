@@ -1,0 +1,99 @@
+source: configs/assumptions.yml
+assumptions:
+- id: time_horizon_1820_2100_period_split
+  status: confirmed
+  source: user
+  scope: time
+  impact: high
+  introduced_in_version: v4.1
+  statement: "Model horizon 1820\u20132100 with historic=1870\u20132019 and reporting=2020\u2013\
+    2100 (no overlap)."
+  replacement_plan: N/A
+- id: missing_policy_global_ok
+  status: confirmed
+  source: user
+  scope: etl
+  impact: medium
+  introduced_in_version: v4.1
+  statement: 'Missing policy accepted: hold_first before first year, hold_last after
+    last year, interpolate_linear inside gaps.'
+  replacement_plan: If needed, add per-variable overrides in configs/data_sources.yml.
+- id: exogenous_stock_and_gas_provided
+  status: confirmed
+  source: user
+  scope: dmfa.initialization
+  impact: high
+  introduced_in_version: v4
+  statement: Observed in-use stock and GAS are provided as exogenous time series for
+    historic calibration.
+  replacement_plan: N/A
+- id: od_trade_matrices_provided_exogenous
+  status: confirmed
+  source: user
+  scope: trade
+  impact: high
+  introduced_in_version: v4
+  statement: OD trade matrices will be provided exogenously.
+  replacement_plan: N/A
+- id: trade_factor_baseline_1
+  status: confirmed
+  source: user
+  scope: trade
+  impact: medium
+  introduced_in_version: v4
+  statement: Trade friction factor defaults to 1.0 everywhere unless explicitly overridden.
+  replacement_plan: Add shock/friction series if resilience conclusions require it.
+- id: lifetimes_lognormal_miso2_aligned
+  status: confirmed
+  source: user
+  scope: dmfa.lifetimes
+  impact: high
+  introduced_in_version: v4
+  statement: Lifetime distributions follow MISO2-style lognormal (no Weibull).
+  replacement_plan: N/A
+- id: od_matrix_semantics_weights_vs_shares
+  status: confirmed
+  source: user_required
+  scope: trade
+  impact: high
+  introduced_in_version: v4.4
+  statement: OD matrices are interpreted as weights (relative preferences), not shares.
+    OD allocator normalizes weights per origin and applies capacity/export ceilings.
+  replacement_plan: User confirmation required before full runs.
+- id: jd_detail_tracking_activation
+  status: confirmed
+  source: user_required
+  scope: end_use_hierarchy
+  impact: medium
+  introduced_in_version: v4.4
+  statement: jd tracking may be enabled when end_use_detail_share_frac is provided;
+    reporting may aggregate to j or show jd breakdowns. User indicated either is acceptable.
+  replacement_plan: User confirmation required before jd-level reporting.
+- id: trade_commodities_set
+  status: confirmed
+  source: user
+  scope: trade
+  impact: high
+  introduced_in_version: v4.7
+  statement: Traded commodities are concentrate, refined_metal, and scrap (dimension
+    'commodities' / code 'c').
+  replacement_plan: N/A
+- id: realized_demand_definition
+  status: confirmed
+  source: user
+  scope: indicators
+  impact: high
+  introduced_in_version: v4.7
+  statement: Demand-based indicators use realized demand defined as I_use (material
+    inflow into use stock) aggregated over end-uses as needed.
+  replacement_plan: N/A
+- id: reuse_reman_interpretation_lifetime_extension
+  status: confirmed
+  source: user
+  scope: r_strategies
+  impact: high
+  introduced_in_version: v4.7
+  statement: 'Reuse/reman is represented via lifetime extension: lognormal mu is shifted
+    by ln(lifetime_multiplier_ge_1); sigma unchanged.'
+  replacement_plan: N/A
+temp_allows_missing_required_exogenous_used: []

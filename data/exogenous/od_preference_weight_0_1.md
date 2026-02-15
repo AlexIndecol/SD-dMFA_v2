@@ -5,3 +5,4 @@ Origin-destination preference weights for trade allocation.
 - Unit: 0..1
 - You selected: provide trade matrices as exogenous variables.
 - If interpreted as shares, ensure sum over d equals 1 for each (t,m,c,o).
+- Detailed provenance and derivation: `docs/EXOGENOUS_BASELINE_PROVENANCE.md#od_preference_weight_0_1`

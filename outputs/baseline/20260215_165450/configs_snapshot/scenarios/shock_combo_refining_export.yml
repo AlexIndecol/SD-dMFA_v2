@@ -1,0 +1,48 @@
+schema_version: '1.0'
+id: shock_combo_refining_export
+inherits: baseline
+description: 'Compound shock: CHN refining bottleneck + export restriction to EU27
+  (stress test).'
+requires_user_inputs:
+- Refining shock multiplier/duration; export restriction magnitude.
+- OD semantics (weights vs shares) and normalization rule.
+shocks:
+  capacity_stage_observed_kt_per_yr:
+    shape: pulse
+    start_year: 2032
+    duration_years: 3
+    multiplier: null
+    targets:
+      regions:
+      - CHN
+      materials:
+      - Ni
+      stages:
+      - refining
+  od_preference_weight_0_1:
+    shape: step
+    year: 2032
+    multiplier: null
+    targets:
+      materials:
+      - Ni
+      commodities:
+      - refined_metal
+      origin_regions:
+      - CHN
+      destination_regions:
+      - EU27
+  trade_factor_i_ge_1:
+    shape: step
+    year: 2032
+    value: null
+    targets:
+      suppliers:
+      - CHN
+      materials:
+      - Ni
+      commodities:
+      - refined_metal
+notes:
+- Interpretation depends strongly on OD matrix semantics and how trade allocator renormalizes.
+- Use stabilizer for ceilings to avoid oscillations in coupled runs.
