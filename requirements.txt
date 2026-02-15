@@ -1,0 +1,7 @@
+numpy>=1.24
+pandas>=2.0
+pyyaml>=6.0
+typer>=0.9
+# Optional (uncomment when running the actual coupled model)
+# bptk-py
+# flodym
