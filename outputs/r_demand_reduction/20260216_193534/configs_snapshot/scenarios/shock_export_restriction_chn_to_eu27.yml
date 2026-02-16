@@ -1,0 +1,36 @@
+schema_version: '1.0'
+id: shock_export_restriction_chn_to_eu27
+inherits: baseline
+description: Export restriction from CHN to EU27 for selected commodities/materials.
+requires_user_inputs:
+- 'OD matrix semantics: weights or shares (and normalization rule if shares).'
+- Which commodities are targeted (e.g., refined_metal).
+- 'Magnitude: reduce CHN->EU27 preference OR increase friction.'
+shocks:
+  od_preference_weight_0_1:
+    shape: step
+    year: 2032
+    multiplier: null
+    targets:
+      materials:
+      - Ni
+      commodities:
+      - refined_metal
+      origin_regions:
+      - CHN
+      destination_regions:
+      - EU27
+  trade_factor_i_ge_1:
+    shape: step
+    year: 2032
+    value: null
+    targets:
+      suppliers:
+      - CHN
+      materials:
+      - Ni
+      commodities:
+      - refined_metal
+notes:
+- OD adjustments should be paired with a renormalization rule if matrices are shares.
+- If friction stays at 1.0, restrictions must be represented through OD matrices.

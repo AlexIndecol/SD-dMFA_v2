@@ -1,0 +1,29 @@
+schema_version: '1.0'
+id: r_reuse_reman
+inherits: baseline
+description: Divert a share of end-of-life products into reuse/reman loops.
+requires_user_inputs:
+- Which end-uses are eligible (machinery, vehicles, electronics).
+- Diversion share trajectory and whether it reduces demand or shifts timing.
+levers:
+  reuse_reman_share_of_eol_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Ni
+      - Sn
+      end_uses:
+      - machinery_and_equipment
+      - motor_vehicles_trailers_and_semi_trailers
+      - computers_and_precision_instruments
+      - electrical_equipment
+notes:
+- Clarify whether reuse/reman reduces gross demand or delays EoL (lifetime effect).
+- 'v4.7: If reuse/reman is represented via lifetime extension, prefer r_lifetime_extension.yml.
+  This scenario represents an alternative (EoL diversion) and may be unused.'

@@ -1,0 +1,40 @@
+schema_version: '1.0'
+id: shock_battery_demand_boom_eu27
+inherits: baseline
+description: Demand boom for Ni driven by EV batteries (EU27). Uses jd categories
+  if enabled.
+requires_user_inputs:
+- Is jd tracking enabled and is end_use_detail_share_frac complete?
+- Demand increase magnitude and timing.
+shocks:
+  end_use_detail_share_frac:
+    shape: ramp
+    start_year: 2025
+    end_year: 2035
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Ni
+      j:
+      - motor_vehicles_trailers_and_semi_trailers
+      jd:
+      - vehicle_batteries
+  demand_multiplier_ge_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2035
+    from: 1.0
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Ni
+      end_uses:
+      - motor_vehicles_trailers_and_semi_trailers
+notes:
+- If shifting jd shares, ensure sum over jd equals 1 within each (t,r,m,j).
+- If jd not enabled, apply the demand multiplier to vehicles bucket.

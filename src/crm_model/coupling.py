@@ -8,6 +8,7 @@ import pandas as pd
 from .sd_model import build_sd_model, run_sd_step
 from .dmfa_model import build_dmfa_model, run_dmfa_step
 from .trade_allocator import allocate_od_weights
+from .scenario_controls import apply_scenario_controls_year_df
 
 
 def smooth_exponential(prev: Optional[pd.DataFrame], raw: pd.DataFrame, tau_years: float, keys: list[str]) -> pd.DataFrame:
@@ -78,6 +79,8 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
     tcfg = configs.get("time", {}).get("stabilizers", {}) or {}
     tau = float(tcfg.get("capacity_ceiling_smoothing_tau_years", 2.0))
     price_tau = float(tcfg.get("price_smoothing_tau_years", 1.0))
+    scenario_cfg = configs.get("scenario", {}) or {}
+    scenario_autofill_cfg = configs.get("scenario_autofill", {}) or {}
 
     base_rmj = exogenous.get("_base_rmj")
     base_rmp = exogenous.get("_base_rmp")
@@ -86,16 +89,92 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
         raise ValueError("Missing base grids in exogenous bundle (_base_rmj, _base_rmp, _base_rmc)")
 
     # 1) SD step
+    gas_year, _ = apply_scenario_controls_year_df(
+        _year(exogenous.get("gas_to_use_observed_kt_per_yr"), year),
+        target_var="gas_to_use_observed_kt_per_yr",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    use_share_year, _ = apply_scenario_controls_year_df(
+        _year(exogenous.get("use_share_j_frac"), year),
+        target_var="use_share_j_frac",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    cap_obs_year, _ = apply_scenario_controls_year_df(
+        _year(exogenous.get("capacity_stage_observed_kt_per_yr"), year),
+        target_var="capacity_stage_observed_kt_per_yr",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
     sd_inputs: Dict[str, Any] = {
         "base_rmj": base_rmj,
         "base_rmp": base_rmp,
-        "gas_to_use_observed_kt_per_yr": exogenous.get("gas_to_use_observed_kt_per_yr"),
-        "use_share_j_frac": exogenous.get("use_share_j_frac"),
-        "capacity_stage_observed_kt_per_yr": exogenous.get("capacity_stage_observed_kt_per_yr"),
+        "gas_to_use_observed_kt_per_yr": gas_year,
+        "use_share_j_frac": use_share_year,
+        "capacity_stage_observed_kt_per_yr": cap_obs_year,
         "price_to_sd_smoothed_rel": state.ceilings.get("price_to_sd_smoothed_rel"),
         "last_i_use": state.memory.get("last_i_use_kt_per_yr"),
     }
     sd_out = run_sd_step(state.sd_model, sd_inputs, year)
+
+    # Apply scenario controls that target runtime SD outputs / SD->dMFA exchanges.
+    sd_out.demand_kt_per_yr, _ = apply_scenario_controls_year_df(
+        sd_out.demand_kt_per_yr,
+        target_var="demand_kt_per_yr",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+        aliases={
+            "demand_multiplier_0_1": "multiplier",
+            "demand_multiplier_ge_1": "multiplier",
+        },
+    )
+    sd_inputs["collection_rate_0_1_year"], _ = apply_scenario_controls_year_df(
+        sd_inputs.get("collection_rate_0_1_year"),
+        target_var="collection_rate_0_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    sd_inputs["recovery_rate_0_1_year"], _ = apply_scenario_controls_year_df(
+        sd_inputs.get("recovery_rate_0_1_year"),
+        target_var="recovery_rate_0_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    sd_inputs["recycling_yield_0_1_year"], _ = apply_scenario_controls_year_df(
+        sd_inputs.get("recycling_yield_0_1_year"),
+        target_var="recycling_yield_0_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    sd_out.lifetime_multiplier_ge_1, _ = apply_scenario_controls_year_df(
+        sd_out.lifetime_multiplier_ge_1,
+        target_var="lifetime_multiplier_ge_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    sd_out.capacity_stage_raw_kt_per_yr, _ = apply_scenario_controls_year_df(
+        sd_out.capacity_stage_raw_kt_per_yr,
+        target_var="capacity_stage_raw_kt_per_yr",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
+    sd_out.price_index_rel, _ = apply_scenario_controls_year_df(
+        sd_out.price_index_rel,
+        target_var="price_index_rel",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
 
     # 2) Stabilize shared ceilings
     cap_raw = _drop_t(sd_out.capacity_stage_raw_kt_per_yr)
@@ -163,12 +242,26 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
 
     # 4) OD trade allocation
     od_pref = _year(exogenous.get("od_preference_weight_0_1"), year)
+    od_pref, _ = apply_scenario_controls_year_df(
+        od_pref,
+        target_var="od_preference_weight_0_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
     if od_pref.empty:
         od_pref = exogenous.get("_base_od", pd.DataFrame(columns=["t", "o", "d", "m", "c", "value"])).copy()
         od_pref["t"] = year
         od_pref["value"] = 0.0
 
     tf_src = _year(exogenous.get("trade_factor_i_ge_1"), year)
+    tf_src, _ = apply_scenario_controls_year_df(
+        tf_src,
+        target_var="trade_factor_i_ge_1",
+        year=year,
+        scenario_cfg=scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
     tf_od = None
     if not tf_src.empty:
         tf = tf_src.copy()
@@ -194,7 +287,7 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
     trade_out = allocate_od_weights(
         year=year,
         od_pref=od_pref,
-        export_cap=exp_sm.rename(columns={"r": "r"}),
+        export_cap=exp_sm,
         trade_factor=tf_od,
         destination_cap=dest_cap,
     )
@@ -224,9 +317,23 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
     state.memory["last_exports_kt_per_yr"] = _drop_t(trade_out.exports_kt_per_yr)
 
     # Commodity stock convenience series.
-    stock_ref = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "refined_metal"][ ["t", "r", "m", "value"] ].copy()
-    stock_scr = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "scrap"][ ["t", "r", "m", "value"] ].copy()
-    stock_con = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "concentrate"][ ["t", "r", "m", "value"] ].copy()
+    stock_ref = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "refined_metal"][["t", "r", "m", "value"]].copy()
+    stock_scr = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "scrap"][["t", "r", "m", "value"]].copy()
+    stock_con = dmfa_out.stock_kt[dmfa_out.stock_kt["c"] == "concentrate"][["t", "r", "m", "value"]].copy()
+
+    # Domestic production proxy for apparent-consumption accounting:
+    # map primary+secondary refined production to commodity c='refined_metal'.
+    dom_prod = dmfa_out.primary_production_kt_per_yr.merge(
+        dmfa_out.secondary_production_kt_per_yr,
+        on=["t", "r", "m"],
+        how="outer",
+        suffixes=("_prim", "_sec"),
+    )
+    dom_prod["value_prim"] = pd.to_numeric(dom_prod["value_prim"], errors="coerce").fillna(0.0)
+    dom_prod["value_sec"] = pd.to_numeric(dom_prod["value_sec"], errors="coerce").fillna(0.0)
+    dom_prod["value"] = dom_prod["value_prim"] + dom_prod["value_sec"]
+    dom_prod["c"] = "refined_metal"
+    dom_prod = dom_prod[["t", "r", "m", "c", "value"]]
 
     # Realized unmet demand.
     unmet_series = unmet[["t", "r", "m", "unmet"]].rename(columns={"unmet": "value"})
@@ -248,10 +355,17 @@ def run_coupled_year(state: CoupledState, exogenous: Dict[str, pd.DataFrame], ye
         "secondary_production_kt_per_yr": dmfa_out.secondary_production_kt_per_yr,
         "eol_recycling_kt_per_yr": dmfa_out.eol_recycling_kt_per_yr,
         "apparent_consumption_kt_per_yr": dmfa_out.apparent_consumption_kt_per_yr,
+        "domestic_production_kt_per_yr": dom_prod,
+        "stock_change_kt_per_yr": dmfa_out.stock_change_kt_per_yr,
         "balancing_item_kt_per_yr": dmfa_out.balancing_item_kt_per_yr,
         "negativity_clipped_kt_per_yr": dmfa_out.negativity_clipped_kt_per_yr,
         "new_scrap_generated_kt_per_yr": dmfa_out.new_scrap_generated_kt_per_yr,
         "old_scrap_generated_kt_per_yr": dmfa_out.old_scrap_generated_kt_per_yr,
+        "old_scrap_recycled_kt_per_yr": dmfa_out.old_scrap_recycled_kt_per_yr,
+        "primary_input_kt_per_yr": dmfa_out.primary_input_kt_per_yr,
+        "secondary_input_old_scrap_kt_per_yr": dmfa_out.secondary_input_old_scrap_kt_per_yr,
+        "secondary_input_total_kt_per_yr": dmfa_out.secondary_input_total_kt_per_yr,
+        "process_flow_kt_per_yr": dmfa_out.process_flow_kt_per_yr,
         "scrap_buffer_kt": dmfa_out.scrap_buffer_kt,
         "scrap_release_kt_per_yr": dmfa_out.scrap_release_kt_per_yr,
         "s_sec_max_raw_kt_per_yr": dmfa_out.secondary_production_kt_per_yr,

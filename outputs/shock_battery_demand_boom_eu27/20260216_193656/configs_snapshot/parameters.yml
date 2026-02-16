@@ -1,0 +1,4 @@
+includes:
+- configs/parameters/parameters_sd.yml
+- configs/parameters/parameters_dmfa.yml
+- configs/parameters/parameters_trade.yml

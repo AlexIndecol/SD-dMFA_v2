@@ -1,0 +1,19 @@
+miso2_4_to_model_7:
+  Buildings: construction
+  Infrastructure: construction
+  Machinery: __SPLIT__
+  Short lived products: products_nec
+miso2_detailed_to_model_7:
+  Residential buildings: construction
+  Non-residential buildings: construction
+  Roads: construction
+  Civil engineering, except roads: construction
+  Machinery and equipment: machinery_and_equipment
+  Computers and precision instruments: computers_and_precision_instruments
+  Electrical equipment: electrical_equipment
+  Motor vehicles trailers and semi-trailers: motor_vehicles_trailers_and_semi_trailers
+  Other transport equipment: other_transport_equipment
+  Furniture and other manufactured goods nec: products_nec
+  Printed matter and recorded media: products_nec
+  Food packaging: products_nec
+  Products nec: products_nec

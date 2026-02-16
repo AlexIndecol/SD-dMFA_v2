@@ -1,0 +1,30 @@
+baseline_run: '20260216_210857'
+reporting_window:
+  start_year: 2020
+  end_year: 2100
+headline_indicators:
+- import_reliance_frac
+- apparent_consumption_kt_per_yr
+- eol_rr_frac
+- eol_rir_frac
+- stockpile_cover_years
+- utilization_rate_ur_frac
+- buffer_coverage_years
+scenario_ids:
+- r_collection_push
+- r_high_quality_recycling
+- r_reuse_reman
+- r_lifetime_extension
+- r_demand_reduction
+- policy_package_circularity
+- shock_mining_disruption_chn
+- shock_refining_bottleneck_chn
+- shock_export_restriction_chn_to_eu27
+- shock_battery_demand_boom_eu27
+- shock_combo_refining_export
+rows: 77
+status_counts:
+  ok: 77
+artifacts:
+  csv: outputs/comparisons/20260216_211734/baseline_vs_scenarios_headline_indicators.csv
+  md: outputs/comparisons/20260216_211734/baseline_vs_scenarios_headline_indicators.md

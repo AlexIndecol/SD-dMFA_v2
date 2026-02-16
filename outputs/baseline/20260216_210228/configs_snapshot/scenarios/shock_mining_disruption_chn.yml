@@ -1,0 +1,22 @@
+schema_version: '1.0'
+id: shock_mining_disruption_chn
+inherits: baseline
+description: Temporary disruption of primary extraction capacity in CHN.
+requires_user_inputs:
+- Which materials are affected and severity (multiplier).
+- Whether shock hits capacity, ore mined, or both.
+shocks:
+  capacity_stage_observed_kt_per_yr:
+    shape: pulse
+    start_year: 2028
+    duration_years: 2
+    multiplier: null
+    targets:
+      regions:
+      - CHN
+      materials:
+      - Ni
+      stages:
+      - primary_extraction
+notes:
+- Use stabilizer in coupling to avoid oscillations when capacities bind.

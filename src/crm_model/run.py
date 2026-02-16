@@ -12,6 +12,7 @@ from .io_exogenous import read_all_exogenous
 from .snapshot import timestamp, snapshot_configs, write_metadata
 from .indicators import compute_indicators
 from .coupling import build_coupled_system, run_coupled_year
+from .scenario_controls import summarize_control_resolution
 
 
 def _deep_merge(a: dict, b: dict) -> dict:
@@ -30,6 +31,13 @@ def _load_parameters(root: Path, paths) -> dict:
     for inc in idx.get("includes", []):
         merged = _deep_merge(merged, load_yaml(root / inc))
     return merged
+
+
+def _load_optional_yaml(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    loaded = load_yaml(path)
+    return loaded if isinstance(loaded, dict) else {}
 
 
 def _resolve_scenario(root: Path, paths, scenario_id: str) -> dict:
@@ -134,13 +142,30 @@ def _write_assumptions_used(out_dir: Path, assumptions_cfg: dict, temp_covered: 
         yaml.safe_dump(payload, f, sort_keys=False)
 
 
-def _write_run_note(out_dir: Path, dry_run: bool, scenario_id: str, missing_required: list[str]) -> None:
+def _write_run_note(
+    out_dir: Path,
+    dry_run: bool,
+    scenario_id: str,
+    missing_required: list[str],
+    scenario_control_summary: dict,
+) -> None:
     mode = "dry-run" if dry_run else "coupled-run"
-    limits = "Required historic exogenous inputs are currently empty templates." if missing_required else "Outputs depend on configured fallback equations and input data completeness."
+    limits = (
+        "Required historic exogenous inputs are currently empty templates."
+        if missing_required
+        else "Outputs depend on configured equations, native-engine availability, and input data completeness."
+    )
+    ctrl_total = int(scenario_control_summary.get("total_controls", 0))
+    ctrl_resolved = int(scenario_control_summary.get("resolved_controls", 0))
+    ctrl_unresolved = int(len(scenario_control_summary.get("unresolved_controls", [])))
+    ctrl_autofill_enabled = bool(scenario_control_summary.get("autofill_enabled", False))
+    ctrl_autofill_used = int(len(scenario_control_summary.get("autofill_used_controls", [])))
     text = (
         f"Decision question: Does scenario `{scenario_id}` reduce criticality/resilience risk under configured assumptions?\n"
         f"Run mode: {mode}.\n"
         f"Interpretation limits: {limits}\n"
+        f"Scenario controls: total={ctrl_total}, resolved={ctrl_resolved}, unresolved={ctrl_unresolved}, "
+        f"autofill_enabled={ctrl_autofill_enabled}, autofill_used={ctrl_autofill_used}.\n"
     )
     (out_dir / "run_note.md").write_text(text, encoding="utf-8")
 
@@ -158,7 +183,7 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
     """Run a configured project.
 
     - dry_run=True: ingest/snapshot and compute indicators from available series.
-    - dry_run=False: execute the annual coupled fallback engine.
+    - dry_run=False: execute the annual coupled engine with strict native runtime (SD/BPTK-Py + dMFA/flodym).
     """
     paths = get_paths(root)
 
@@ -170,8 +195,13 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
     assumptions_cfg = load_yaml(paths.configs / "assumptions.yml")
     reporting_cfg = load_yaml(paths.configs / "reporting.yml")
     data_sources_cfg = load_yaml(paths.configs / "data_sources.yml")
+    scenario_autofill_cfg = _load_optional_yaml(paths.configs / "scenario_autofill.yml")
     scenario_cfg = _resolve_scenario(root, paths, scenario_id)
     parameters_cfg = _load_parameters(root, paths)
+    scenario_control_summary = summarize_control_resolution(
+        scenario_cfg,
+        scenario_autofill_cfg=scenario_autofill_cfg,
+    )
 
     # Output folder + reproducibility artifacts
     out_dir = paths.outputs / scenario_id / timestamp()
@@ -193,8 +223,24 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
 
     # Annual run (full mode) or passthrough (dry-run)
     series: dict[str, pd.DataFrame]
+    runtime_modules: dict[str, dict[str, Any]] = {}
     if dry_run:
         series = {k: v for k, v in exo.items() if not k.startswith("_") and isinstance(v, pd.DataFrame)}
+        coupling_modules = coupling_cfg.get("modules", {}) or {}
+        runtime_modules = {
+            "sd": {
+                "engine_requested": ((coupling_modules.get("sd", {}) or {}).get("engine", "bptk-py")),
+                "execution_mode": ((coupling_modules.get("sd", {}) or {}).get("execution_mode", "native_required")),
+                "native_available": None,
+                "use_native": None,
+            },
+            "dmfa": {
+                "engine_requested": ((coupling_modules.get("dmfa", {}) or {}).get("engine", "flodym")),
+                "execution_mode": ((coupling_modules.get("dmfa", {}) or {}).get("execution_mode", "native_required")),
+                "native_available": None,
+                "use_native": None,
+            },
+        }
     else:
         cfg_bundle = {
             "time": time_cfg,
@@ -205,8 +251,23 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
             "reporting": reporting_cfg,
             "data_sources": data_sources_cfg,
             "scenario": scenario_cfg,
+            "scenario_autofill": scenario_autofill_cfg,
         }
         state = build_coupled_system(cfg_bundle)
+        runtime_modules = {
+            "sd": {
+                "engine_requested": state.sd_model.get("engine"),
+                "execution_mode": state.sd_model.get("execution_mode"),
+                "native_available": bool(state.sd_model.get("native_available", False)),
+                "use_native": bool(state.sd_model.get("use_native", False)),
+            },
+            "dmfa": {
+                "engine_requested": state.dmfa_model.get("engine"),
+                "execution_mode": state.dmfa_model.get("execution_mode"),
+                "native_available": bool(state.dmfa_model.get("native_available", False)),
+                "use_native": bool(state.dmfa_model.get("use_native", False)),
+            },
+        }
         years = range(
             int(time_cfg.get("time", {}).get("start_year", 0)),
             int(time_cfg.get("time", {}).get("end_year", -1)) + 1,
@@ -241,7 +302,13 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
 
     # Run artifacts
     _write_assumptions_used(out_dir, assumptions_cfg, temp_covered)
-    _write_run_note(out_dir, dry_run=dry_run, scenario_id=scenario_id, missing_required=missing_required)
+    _write_run_note(
+        out_dir,
+        dry_run=dry_run,
+        scenario_id=scenario_id,
+        missing_required=missing_required,
+        scenario_control_summary=scenario_control_summary,
+    )
 
     write_metadata(
         out_dir,
@@ -252,8 +319,14 @@ def run_project(root: Path, scenario_id: str, dry_run: bool = True) -> Path:
             "periods": time_cfg.get("periods", {}),
             "missing_required_historic_inputs": sorted(missing_required),
             "temp_covered_missing_required_historic_inputs": sorted(temp_covered),
+            "scenario_controls_total": int(scenario_control_summary.get("total_controls", 0)),
+            "scenario_controls_resolved": int(scenario_control_summary.get("resolved_controls", 0)),
+            "scenario_controls_unresolved": scenario_control_summary.get("unresolved_controls", []),
+            "scenario_controls_autofill_enabled": bool(scenario_control_summary.get("autofill_enabled", False)),
+            "scenario_controls_autofill_used": scenario_control_summary.get("autofill_used_controls", []),
+            "runtime_modules": runtime_modules,
             "series_written": sorted(series_all.keys()),
-            "note": "v4.8: annual coupled fallback engine implemented (SD+dMFA+OD trade) with stop-the-run checks for required historic inputs.",
+            "note": "v5.3: native-only coupled engine with full flodym MFASystem stage-network execution for dMFA (SD requires BPTK-Py; dMFA requires flodym), with scenario-control wiring and TEMP scenario autofill support.",
         },
     )
 

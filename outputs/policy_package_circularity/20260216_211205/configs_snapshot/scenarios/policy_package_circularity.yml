@@ -1,0 +1,90 @@
+schema_version: '1.0'
+id: policy_package_circularity
+inherits: baseline
+description: 'Combined circularity policy package: collection + higher recovery/yield
+  + reuse/reman (and optional demand reduction).'
+requires_user_inputs:
+- Targets and timing for collection_rate, recovery_rate, recycling_yield, reuse/reman
+  share.
+- Whether to include demand reduction and/or lifetime extension in the package.
+levers:
+  collection_rate_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+  recovery_rate_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+  recycling_yield_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+  demand_multiplier_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: 1.0
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+  lifetime_multiplier_ge_1:
+    shape: step
+    year: 2030
+    value: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - construction
+      - machinery_and_equipment
+      - motor_vehicles_trailers_and_semi_trailers
+notes:
+- This package is intended for scenario comparison; keep each lever realistic to avoid
+  infeasible combined effects.
+- If adding lifetime extension, use r_lifetime_extension.yml pattern.
+- 'v4.7: reuse/reman represented via lifetime extension (lifetime_multiplier_ge_1).'

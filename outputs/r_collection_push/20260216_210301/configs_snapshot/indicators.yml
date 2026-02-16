@@ -1,0 +1,689 @@
+schema_version: '1.2'
+description: Indicator + diagnostic metric definitions parsed from INDICATORS.md (symbolic
+  formulas; review and implement as needed).
+source: INDICATORS.md
+conventions:
+- Time is yearly (t). Core reporting dims are typically (t,r,m).
+- Markdown index hints like [t,r,(s)] are carried as notation; (s) is mapped to end-use
+  j.
+- Functions used in formulas (e.g., max/min/sum_i/sum_p/std) are symbolic and require
+  implementation in indicators engine.
+- Composite indicators (kind=composite) require explicit weights (w1,w2,...) defined
+  elsewhere (no-guess).
+periods:
+  historic:
+    start_year: 1870
+    end_year: 2019
+    use: calibration/fit metrics
+  reporting:
+    start_year: 2020
+    end_year: 2100
+    use: results
+indicators:
+- name: reserve_depletion_time_years
+  kind: indicator
+  section: Scarcity (supply availability)
+  requires:
+  - primary_production_kt_per_yr
+  - reserves_kt
+  formula: reserve_depletion_time_years = reserves_kt / primary_production_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: resource_depletion_time_years
+  kind: indicator
+  section: Scarcity (supply availability)
+  requires:
+  - primary_production_kt_per_yr
+  - resources_kt
+  formula: resource_depletion_time_years = resources_kt / primary_production_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: ore_grade_frac
+  kind: indicator
+  section: Scarcity (supply availability)
+  requires:
+  - contained_metal_kt
+  - ore_mined_kt
+  formula: ore_grade_frac = contained_metal_kt / ore_mined_kt
+  notes:
+  - '% form: ore_grade_pct = 100 * ore_grade_frac'
+  dims:
+  - t
+  - r
+  - m
+- name: byproduct_percentage_frac
+  kind: indicator
+  section: By-product dependence
+  requires:
+  - byproduct_primary_production_kt_per_yr
+  - total_primary_production_kt_per_yr
+  formula: byproduct_percentage_frac = byproduct_primary_production_kt_per_yr / total_primary_production_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: apparent_consumption_kt_per_yr
+  kind: indicator
+  section: Trade exposure
+  requires:
+  - domestic_production_kt_per_yr
+  - exports_kt_per_yr
+  - imports_kt_per_yr
+  - stock_change_kt_per_yr
+  formula: apparent_consumption_kt_per_yr = domestic_production_kt_per_yr + imports_kt_per_yr
+    - exports_kt_per_yr + stock_change_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+  - c
+- name: import_reliance_frac
+  kind: indicator
+  section: Trade exposure
+  requires:
+  - apparent_consumption_kt_per_yr
+  - exports_kt_per_yr
+  - imports_kt_per_yr
+  formula: import_reliance_frac = max(imports_kt_per_yr - exports_kt_per_yr, 0) /
+    apparent_consumption_kt_per_yr
+  notes:
+  - '*(option A: net-import reliance; clipped at 0)*'
+  dims:
+  - t
+  - r
+  - m
+  - c
+- name: import_reliance_gross_frac
+  kind: indicator
+  section: Trade exposure
+  requires:
+  - apparent_consumption_kt_per_yr
+  - imports_kt_per_yr
+  formula: import_reliance_gross_frac = imports_kt_per_yr / apparent_consumption_kt_per_yr
+  notes:
+  - '*(option B: gross import share)*'
+  dims:
+  - t
+  - r
+  - m
+  - c
+- name: hhi_generic_0_1
+  kind: indicator
+  section: Concentration, governance, regulation
+  requires:
+  - share_i_frac
+  formula: hhi_generic_0_1 = sum_i( share_i_frac**2 )
+  dims:
+  - t
+  - r
+  - m
+- name: wgi_risk_i_0_1
+  kind: indicator
+  section: Concentration, governance, regulation
+  requires:
+  - wgi_norm_i_0_1
+  formula: wgi_risk_i_0_1 = 1 - wgi_norm_i_0_1
+  notes:
+  - '*(example normalization; document exact method)*'
+  dims:
+  - t
+  - m
+  - i
+- name: hhi_wgi_0_1
+  kind: indicator
+  section: Concentration, governance, regulation
+  requires:
+  - share_i_frac
+  - wgi_risk_i_0_1
+  formula: hhi_wgi_0_1 = sum_i( share_i_frac**2 * wgi_risk_i_0_1 )
+  dims:
+  - t
+  - r
+  - m
+- name: hhi_wgi_t_0_1
+  kind: indicator
+  section: Concentration, governance, regulation
+  requires:
+  - share_i_frac
+  - trade_factor_i_ge_1
+  - wgi_risk_i_0_1
+  formula: hhi_wgi_t_0_1 = sum_i( share_i_frac**2 * wgi_risk_i_0_1 * trade_factor_i_ge_1
+    )
+  notes:
+  - '*(trade restriction / regulation augmented)*'
+  dims:
+  - t
+  - r
+  - m
+- name: stockpile_kt
+  kind: indicator
+  section: Buffers
+  requires:
+  - stockpile_mass_kt
+  formula: stockpile_kt = stockpile_mass_kt
+  dims:
+  - t
+  - r
+  - m
+- name: stockpile_cover_years
+  kind: indicator
+  section: Buffers
+  requires:
+  - demand_kt_per_yr
+  - stockpile_kt
+  formula: stockpile_cover_years = stockpile_kt / demand_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: buffer_stock_to_flow_years
+  kind: indicator
+  section: Buffers
+  requires:
+  - demand_kt_per_yr
+  - in_use_stock_kt
+  formula: buffer_stock_to_flow_years = in_use_stock_kt / demand_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+  - j
+- name: eol_rr_frac
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - old_scrap_generated_kt_per_yr
+  - old_scrap_recycled_kt_per_yr
+  formula: eol_rr_frac = old_scrap_recycled_kt_per_yr / old_scrap_generated_kt_per_yr
+  notes:
+  - '*(end-of-life recycling rate)*'
+  dims:
+  - t
+  - r
+  - m
+- name: eol_rir_frac
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - primary_input_kt_per_yr
+  - secondary_input_old_scrap_kt_per_yr
+  - secondary_input_total_kt_per_yr
+  formula: eol_rir_frac = secondary_input_old_scrap_kt_per_yr / (primary_input_kt_per_yr
+    + secondary_input_total_kt_per_yr)
+  notes:
+  - '*(end-of-life recycling input rate; old-scrap input share)*'
+  dims:
+  - t
+  - r
+  - m
+- name: rir_frac
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - primary_input_kt_per_yr
+  - secondary_input_total_kt_per_yr
+  formula: rir_frac = secondary_input_total_kt_per_yr / (primary_input_kt_per_yr +
+    secondary_input_total_kt_per_yr)
+  notes:
+  - '*(recycling input rate / recycled content; ONLY keep if distinct from eol_rir)*'
+  dims:
+  - t
+  - r
+  - m
+- name: utilization_rate_frac
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - inflow_to_use_kt_per_yr
+  - primary_input_kt_per_yr
+  - secondary_input_total_kt_per_yr
+  formula: utilization_rate_frac = inflow_to_use_kt_per_yr / (primary_input_kt_per_yr
+    + secondary_input_total_kt_per_yr)
+  notes:
+  - '*(share of inputs that enter use; boundary must be explicit)*'
+  dims:
+  - t
+  - r
+  - m
+- name: inflow_to_use_kt_per_yr
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - pre_use_losses_kt_per_yr
+  - primary_input_kt_per_yr
+  - secondary_input_total_kt_per_yr
+  formula: inflow_to_use_kt_per_yr = (primary_input_kt_per_yr + secondary_input_total_kt_per_yr)
+    - pre_use_losses_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: loss_rate_frac
+  kind: indicator
+  section: Circularity & supply efficiency
+  requires:
+  - primary_input_kt_per_yr
+  - secondary_input_total_kt_per_yr
+  - total_losses_kt_per_yr
+  - total_primary_extraction_kt_per_yr
+  formula:
+  - loss_rate_frac = total_losses_kt_per_yr / total_primary_extraction_kt_per_yr
+  - loss_rate_frac = total_losses_kt_per_yr / (primary_input_kt_per_yr + secondary_input_total_kt_per_yr)
+  notes:
+  - '*(normalized losses; pick ONE normalization and document)*'
+  dims:
+  - t
+  - r
+  - m
+- name: average_product_lifetime_years
+  kind: indicator
+  section: Demand utility & efficiency
+  requires: []
+  formula: average_product_lifetime_years = sum_a( a_years * lifetime_pdf_age_a )
+  dims:
+  - t
+  - r
+  - m
+- name: growth_rate_short_term_frac
+  kind: indicator
+  section: Demand utility & efficiency
+  requires:
+  - demand_kt_per_yr
+  formula: growth_rate_short_term_frac[t,r] = (demand_kt_per_yr[t,r] - demand_kt_per_yr[t-1,r])
+    / demand_kt_per_yr[t-1,r]
+  dims:
+  - t
+  - r
+  - m
+- name: growth_rate_long_term_cagr_frac
+  kind: indicator
+  section: Demand utility & efficiency
+  requires: []
+  formula: growth_rate_long_term_cagr_frac = (demand_end / demand_start)**(1/(year_end
+    - year_start)) - 1
+  dims:
+  - t
+  - r
+  - m
+- name: substitution_index_0_1
+  kind: indicator
+  section: Demand utility & efficiency
+  requires:
+  - nonsubstitutability_j_0_1
+  - use_share_j_frac
+  formula: substitution_index_0_1 = sum_j( use_share_j_frac * nonsubstitutability_j_0_1
+    )
+  notes:
+  - '*(higher = harder to substitute; weighted by end-use shares)*'
+  dims:
+  - t
+  - r
+  - m
+- name: net_availability_kt_per_yr
+  kind: indicator
+  section: Physics-first availability (dMFA / combined)
+  requires:
+  - losses_kt_per_yr
+  - primary_supply_kt_per_yr
+  - secondary_supply_kt_per_yr
+  formula: net_availability_kt_per_yr = primary_supply_kt_per_yr + secondary_supply_kt_per_yr
+    - losses_kt_per_yr
+  dims:
+  - t
+  - r
+  - m
+- name: s_sec_max_kt_per_yr
+  kind: indicator
+  section: Physics-first availability (dMFA / combined)
+  requires:
+  - collection_rate_0_1
+  - old_scrap_generated_kt_per_yr
+  - recovery_rate_0_1
+  - recycling_proc_cap_kt_per_yr
+  - recycling_yield_0_1
+  formula:
+  - s_sec_max_kt_per_yr = old_scrap_generated_kt_per_yr * collection_rate_0_1 * recovery_rate_0_1
+    * recycling_yield_0_1
+  - s_sec_max_kt_per_yr = min(s_sec_max_kt_per_yr, recycling_proc_cap_kt_per_yr)
+  notes:
+  - '*(secondary supply ceiling; dMFA constraint)*'
+  dims:
+  - t
+  - r
+  - m
+- name: s_prim_max_kt_per_yr
+  kind: indicator
+  section: Physics-first availability (dMFA / combined)
+  requires:
+  - primary_capacity_envelope_kt_per_yr
+  formula: s_prim_max_kt_per_yr = primary_capacity_envelope_kt_per_yr
+  notes:
+  - '*(primary supply ceiling; scenario/constraint)*'
+  dims:
+  - t
+  - r
+  - m
+- name: supply_risk_extraction_index
+  kind: composite
+  section: Aggregate indicators (composites; weights/config required)
+  requires:
+  - byproduct_percentage_frac
+  - eol_rir_frac
+  - hhi_mining_0_1
+  - hhi_wgi_t_mining_0_1
+  - import_reliance_frac
+  - substitution_index_0_1
+  formula: supply_risk_extraction_index = w1*hhi_mining_0_1 + w2*hhi_wgi_t_mining_0_1
+    + w3*byproduct_percentage_frac + w4*import_reliance_frac + w5*(1 - eol_rir_frac)
+    + w6*substitution_index_0_1
+  dims:
+  - t
+  - r
+  - m
+- name: supply_risk_processing_index
+  kind: composite
+  section: Aggregate indicators (composites; weights/config required)
+  requires:
+  - eol_rir_frac
+  - hhi_refining_0_1
+  - hhi_wgi_t_refining_0_1
+  - import_reliance_frac
+  - substitution_index_0_1
+  formula: supply_risk_processing_index = w1*hhi_refining_0_1 + w2*hhi_wgi_t_refining_0_1
+    + w3*import_reliance_frac + w4*(1 - eol_rir_frac) + w5*substitution_index_0_1
+  dims:
+  - t
+  - r
+  - m
+- name: economic_importance_index
+  kind: composite
+  section: Aggregate indicators (composites; weights/config required)
+  requires:
+  - gva_k_currency
+  - material_dependency_k_0_1
+  formula:
+  - economic_importance_index = sum_k( gva_k_currency * material_dependency_k_0_1
+    )
+  - economic_importance_index = economic_importance_index / sum_k(gva_k_currency)
+  dims:
+  - t
+  - r
+  - m
+- name: service_level_0_1
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - demand_kt_per_yr
+  - shipments_kt_per_yr
+  formula: service_level_0_1[t,r] = shipments_kt_per_yr[t,r] / demand_kt_per_yr[t,r]
+  dims:
+  - t
+  - r
+  - m
+- name: shortage_fraction_0_1
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - service_level_0_1
+  formula: shortage_fraction_0_1[t,r] = 1 - service_level_0_1[t,r]
+  dims:
+  - t
+  - r
+  - m
+- name: peak_shortage_0_1
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - shortage_fraction_0_1
+  formula: peak_shortage_0_1[r] = max_t( shortage_fraction_0_1[t,r] )
+  dims:
+  - t
+  - r
+  - m
+- name: cumulative_unmet_demand_kt
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - demand_kt_per_yr
+  - shipments_kt_per_yr
+  formula: cumulative_unmet_demand_kt[r] = sum_t( max(demand_kt_per_yr[t,r] - shipments_kt_per_yr[t,r],
+    0) )
+  dims:
+  - t
+  - r
+  - m
+- name: time_to_recovery_years
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - service_level_0_1
+  - service_level_target_0_1
+  formula: time_to_recovery_years[r] = (min t >= disruption_start_year such that service_level_0_1[t..t+k-1,r]
+    >= service_level_target_0_1) - disruption_start_year
+  dims:
+  - t
+  - r
+  - m
+- name: inventory_cover_years
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - demand_kt_per_yr
+  - inventory_kt
+  formula: inventory_cover_years[t,r] = inventory_kt[t,r] / demand_kt_per_yr[t,r]
+  dims:
+  - t
+  - r
+  - m
+- name: volatility_amplification_ratio
+  kind: sd_metric
+  section: Resilience / service indicators (SD outputs)
+  requires:
+  - demand_kt_per_yr
+  - orders_kt_per_yr
+  formula: volatility_amplification_ratio[r] = std(orders_kt_per_yr[:,r]) / std(demand_kt_per_yr[:,r])
+  dims:
+  - t
+  - r
+  - m
+- name: in_use_stock_kt
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - eol_outflow_kt_per_yr
+  - inflow_to_use_kt_per_yr
+  formula: in_use_stock_kt[t,r,(s)] = in_use_stock_kt[t-1,r,(s)] + inflow_to_use_kt_per_yr[t,r,(s)]
+    - eol_outflow_kt_per_yr[t,r,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+  notes:
+  - 'dims_hint_from_md: t,r,(s)  (note: (s) mapped to j)'
+- name: eol_outflow_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - inflow_to_use_kt_per_yr
+  formula: eol_outflow_kt_per_yr[t,r,(s)] = sum_a( inflow_to_use_kt_per_yr[t-a,r,(s)]
+    * lifetime_pdf_age_a_(r,(s)) )
+  dims:
+  - t
+  - r
+  - m
+  - j
+  notes:
+  - 'dims_hint_from_md: t,r,(s)  (note: (s) mapped to j)'
+- name: collection_realized_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - collection_cap_kt_per_yr
+  - collection_potential_kt_per_yr
+  formula:
+  - collection_realized_kt_per_yr[t,r,(s)] = min(collection_potential_kt_per_yr[t,r,(s)],
+    collection_cap_kt_per_yr[t,r,(s)])
+  - collection_realized_kt_per_yr[t,r,(s)] = collection_potential_kt_per_yr[t,r,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+  notes:
+  - 'dims_hint_from_md: t,r,(s)  (note: (s) mapped to j)'
+- name: collection_potential_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - collection_rate_0_1
+  - eol_outflow_kt_per_yr
+  formula: collection_potential_kt_per_yr[t,r,(s)] = eol_outflow_kt_per_yr[t,r,(s)]
+    * collection_rate_0_1[t,r,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+- name: recovery_realized_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - recovery_potential_kt_per_yr
+  - recycling_proc_cap_kt_per_yr
+  formula:
+  - recovery_realized_kt_per_yr[t,r,(s)] = min(recovery_potential_kt_per_yr[t,r,(s)],
+    recycling_proc_cap_kt_per_yr[t,r,(s)])
+  - recovery_realized_kt_per_yr[t,r,(s)] = recovery_potential_kt_per_yr[t,r,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+  notes:
+  - 'dims_hint_from_md: t,r,(s)  (note: (s) mapped to j)'
+- name: recovery_potential_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - collection_realized_kt_per_yr
+  - recovery_rate_0_1
+  - recycling_yield_0_1
+  formula: recovery_potential_kt_per_yr[t,r,(s)] = collection_realized_kt_per_yr[t,r,(s)]
+    * recovery_rate_0_1[t,r,(s)] * recycling_yield_0_1[t,r,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+- name: losses_by_process_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - input_to_process_kt_per_yr
+  - transfer_to_next_process_kt_per_yr
+  - useful_output_from_process_kt_per_yr
+  formula: losses_by_process_kt_per_yr[t,r,p,(s)] = input_to_process_kt_per_yr[t,r,p,(s)]
+    - useful_output_from_process_kt_per_yr[t,r,p,(s)] - transfer_to_next_process_kt_per_yr[t,r,p,(s)]
+  dims:
+  - t
+  - r
+  - m
+  - j
+  - p
+  notes:
+  - 'dims_hint_from_md: t,r,p,(s)  (note: (s) mapped to j)'
+- name: total_losses_kt_per_yr
+  kind: mfa_metric
+  section: MFA state & flow metrics (dMFA outputs; diagnostics-only)
+  requires:
+  - losses_by_process_kt_per_yr
+  formula: total_losses_kt_per_yr[t,r,(s)] = sum_p( losses_by_process_kt_per_yr[t,r,p,(s)]
+    )
+  dims:
+  - t
+  - r
+  - m
+  - j
+- name: utilization_rate_ur_frac
+  kind: indicator
+  section: Extensions (circularity boundary)
+  dims:
+  - t
+  - r
+  - m
+  requires:
+  - i_use_kt_per_yr
+  - primary_production_kt_per_yr
+  - secondary_production_kt_per_yr
+  formula: utilization_rate_ur_frac = sum_j(i_use_kt_per_yr) / (primary_production_kt_per_yr
+    + secondary_production_kt_per_yr + eps)
+  notes:
+  - 'UR: share of (primary+secondary) sourcing that enters use (pre-use losses revealed).'
+  - Requires secondary_production_kt_per_yr (define as refined metal from secondary
+    route) and primary_production_kt_per_yr on consistent metal-content basis.
+- name: dir_realized_frac
+  kind: indicator
+  section: Extensions (demand-based resilience)
+  dims:
+  - t
+  - r
+  - m
+  requires:
+  - imports_kt_per_yr
+  - i_use_kt_per_yr
+  formula: dir_realized_frac = sum_i(imports_kt_per_yr) / (sum_j(i_use_kt_per_yr)
+    + eps)
+  notes:
+  - Demand-based import reliance using realized demand (I_use).
+- name: drir_realized_frac
+  kind: indicator
+  section: Extensions (demand-based resilience)
+  dims:
+  - t
+  - r
+  - m
+  requires:
+  - new_scrap_generated_kt_per_yr
+  - eol_rr_frac
+  - i_use_kt_per_yr
+  formula: drir_realized_frac = (new_scrap_generated_kt_per_yr + eol_recycling_kt_per_yr)
+    / (sum_j(i_use_kt_per_yr) + eps)
+  notes:
+  - Demand-based recycled input rate using realized demand. Requires explicit eol_recycling_kt_per_yr
+    series (to be implemented as DMFA output).
+- name: balancing_item_rel_frac
+  kind: sd_metric
+  section: Extensions (data quality)
+  dims:
+  - t
+  - r
+  - m
+  - c
+  requires:
+  - balancing_item_kt_per_yr
+  - apparent_consumption_kt_per_yr
+  formula: balancing_item_rel_frac = balancing_item_kt_per_yr / (apparent_consumption_kt_per_yr
+    + eps)
+  notes:
+  - 'Diagnostic: relative balancing correction used to reconcile apparent consumption
+    and enforce non-negativity.'
+- name: buffer_coverage_years
+  kind: indicator
+  section: Extensions (resilience buffers)
+  dims:
+  - t
+  - r
+  - m
+  requires:
+  - stock_refined_metal_kt
+  - i_use_kt_per_yr
+  formula: buffer_coverage_years = stock_refined_metal_kt / (sum_j(i_use_kt_per_yr)
+    + eps)
+  notes:
+  - 'Resilience buffer: refined metal stock coverage in years of realized demand (I_use).'
+extensions: []

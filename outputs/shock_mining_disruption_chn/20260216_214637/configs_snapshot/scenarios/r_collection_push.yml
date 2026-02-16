@@ -1,0 +1,26 @@
+schema_version: '1.0'
+id: r_collection_push
+inherits: baseline
+description: Increase end-of-life collection rates over time (policy + infrastructure
+  push).
+requires_user_inputs:
+- Baseline collection rate levels (by r,m,j or general defaults).
+- Target collection rate by 2030/2040 (policy ambition).
+levers:
+  collection_rate_0_1:
+    shape: ramp
+    start_year: 2025
+    end_year: 2040
+    from: null
+    to: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - '*'
+notes:
+- Keep <=1; collection interacts with sorting_preprocessing capacity and yields.

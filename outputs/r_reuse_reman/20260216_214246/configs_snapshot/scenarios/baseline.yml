@@ -1,0 +1,34 @@
+schema_version: '1.0'
+id: baseline
+inherits: null
+description: Baseline run (calibrate in historic period, project in reporting).
+periods:
+  historic:
+    start_year: 1870
+    end_year: 2019
+  reporting:
+    start_year: 2020
+    end_year: 2100
+requirements:
+  required_exogenous_historic:
+  - in_use_stock_observed_kt
+  - gas_to_use_observed_kt_per_yr
+  - od_preference_weight_0_1
+  - capacity_stage_observed_kt_per_yr
+  - lifetime_lognormal_mu
+  - lifetime_lognormal_sigma
+  required_exogenous_static_or_sparse:
+  - reserves_kt
+  - resources_kt
+  - wgi_norm_i_0_1
+  optional_exogenous:
+  - end_use_detail_share_frac
+  - trade_factor_i_ge_1
+  - nonsubstitutability_j_0_1
+  - use_share_j_frac
+  - ore_mined_kt_per_yr
+  - byproduct_primary_production_kt_per_yr
+assumptions:
+  use_assumptions_file: configs/assumptions.yml
+  export_assumptions_used: true
+overrides: {}

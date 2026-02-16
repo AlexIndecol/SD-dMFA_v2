@@ -1,0 +1,21 @@
+exogenous_data:
+  mode: one_csv_per_variable
+  directory: data/exogenous
+  filename_pattern: '{variable}.csv'
+  value_column: value
+notes: Files are named exactly as the canonical variable name in the registry. Loader
+  infers variable name from filename.
+exogenous:
+  mode: one_file_per_variable
+  directory: data/exogenous
+  strict_headers: true
+  missing_policy:
+    before_first_year: hold_first
+    after_last_year: hold_last
+    inside_gaps: interpolate_linear
+    require_full_coverage: false
+  notes:
+  - "Historic calibration period is 1870\u20132020. Exogenous series may be provided\
+    \ only for that window; missing years outside can be filled per missing_policy."
+  - For stock and GAS, you typically provide only historic years; reporting years
+    are endogenously simulated.

@@ -1,0 +1,8 @@
+scenario:
+  name: baseline_guess
+  description: Runnable baseline with literature-informed placeholder parameters; exogenous CSVs override where provided.
+  parameter_file: configs/parameters.yml
+  overrides:
+    sd:
+      r_strategies:
+        levers: {}

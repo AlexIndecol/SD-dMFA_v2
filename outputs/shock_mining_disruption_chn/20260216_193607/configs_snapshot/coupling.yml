@@ -1,0 +1,99 @@
+schema_version: '1.1'
+description: Explicit coupling contract for SD (BPTK-Py), dMFA (flodym), and OD trade
+  allocator.
+modules:
+  sd:
+    engine: bptk-py
+    time_step: annual
+  dmfa:
+    engine: flodym
+    time_step: annual
+  trade:
+    engine: od_allocator_simple
+    time_step: annual
+  indicators:
+    engine: python
+    time_step: annual
+exchange:
+  sd_to_dmfa:
+  - var: demand_kt_per_yr
+    note: Demand by region/material/end-use; drives inflow requirement into use-phase.
+  - var: collection_rate_0_1
+    note: Collection lever.
+  - var: recovery_rate_0_1
+    note: Sorting/preprocessing recovery routing.
+  - var: recycling_yield_0_1
+    note: Secondary refining yield.
+  - var: reuse_reman_share_of_eol_0_1
+    note: Share of EoL diverted to reuse/reman loops (R-strategies). (Deprecated when
+      reuse/reman represented via lifetime extension.)
+    optional: true
+  - var: capacity_stage_raw_kt_per_yr
+    note: Stage capacities before smoothing; DMFA uses as throughput ceilings.
+  - var: price_index_rel
+    note: Relative price index (optional); DMFA can use for behavioural routing if
+      implemented.
+    optional: true
+  - var: lifetime_multiplier_ge_1
+    note: Lifetime extension lever (mu' = mu + ln(k)); sigma unchanged.
+  dmfa_to_sd:
+  - var: s_sec_max_raw_kt_per_yr
+    note: Raw secondary availability ceiling from DMFA (scrap+process yields).
+  - var: total_losses_kt_per_yr
+    note: Losses to residues/environment to inform SD scarcity dynamics.
+  - var: in_use_stock_kt
+    note: Computed stocks (for diagnostics/calibration vs observed stock).
+  - var: eol_outflow_kt_per_yr
+    note: EoL flows generated from cohorts + lifetimes.
+  - var: i_use_kt_per_yr
+    note: Realized demand (I_use) as delivered material into use stock.
+    optional: false
+  - var: unmet_demand_kt_per_yr
+    note: Shortage diagnostic (optional).
+    optional: true
+  - var: stock_refined_metal_kt
+    note: Refined metal buffer stock (for SD perceived scarcity/buffer).
+    optional: false
+  - var: stock_scrap_kt
+    note: Scrap buffer stock (for secondary availability perception).
+    optional: false
+  - var: stock_concentrate_kt
+    note: Concentrate buffer stock (for refining feed availability).
+    optional: false
+  trade_inputs:
+  - var: od_preference_weight_0_1
+    note: Exogenous OD matrices (you provide).
+  - var: trade_factor_i_ge_1
+    note: Friction factor >=1 (baseline 1).
+  - var: capacity_stage_to_sd_kt_per_yr
+    note: Smoothed capacity ceilings used to form export caps.
+    source: stabilizer
+  - var: od_export_cap_kt_per_yr
+    note: Export caps by origin/material/commodity for OD allocation.
+  trade_outputs:
+  - var: od_trade_flow_kt_per_yr
+    note: Allocated OD flows by commodity.
+  - var: imports_kt_per_yr
+    note: Imports by region/material/commodity.
+  - var: exports_kt_per_yr
+    note: Exports by region/material/commodity.
+  - var: share_i_frac
+    note: Supplier shares for concentration indicators.
+  stabilizer_series:
+  - var: s_sec_max_to_sd_kt_per_yr
+    note: Smoothed secondary ceiling fed to SD.
+  - var: capacity_stage_to_sd_kt_per_yr
+    note: Smoothed stage capacity ceiling fed to SD + trade.
+  - var: od_export_cap_kt_per_yr
+    note: Smoothed export caps derived from supply/capacities.
+  - var: price_to_sd_smoothed_rel
+    note: Smoothed price series used in SD demand adjustment.
+    optional: true
+  - var: export_cap_smoothed_kt_per_yr
+    note: Smoothed export ceilings (if using numeric smoothing in addition to buffers).
+    optional: true
+stabilizer:
+  method: exponential_smoothing
+  controls_location: configs/time.yml::coupling.stabilizer
+  note: Use a common stabilizer (tau/lambda) for ceilings to damp oscillations in
+    iterative coupling.

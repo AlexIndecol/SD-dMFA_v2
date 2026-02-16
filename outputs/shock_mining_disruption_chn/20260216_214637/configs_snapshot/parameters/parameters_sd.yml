@@ -1,0 +1,96 @@
+sd:
+  price_module:
+    enabled: true
+    price_model: inventory_shortage_response
+    price_floor_factor: 0.3
+    price_ceiling_factor: 3.0
+    price_smoothing_tau_years: 1.0
+    shortage_to_price_elasticity:
+      Zn: 1.5
+      Ni: 1.7
+      Sn: 1.8
+    demand_price_elasticity_short_run:
+      Zn: -0.2
+      Ni: -0.15
+      Sn: -0.25
+    demand_adjustment_time_years: 2.0
+    reference_price_usd_per_t_2020:
+      Zn: 2200
+      Ni: 14000
+      Sn: 19000
+  demand:
+    mode: flow_driven_with_price_feedback
+    baseline_1970_global_demand_kt_per_yr:
+      Zn: 5600
+      Ni: 450
+      Sn: 220
+    baseline_growth_cagr_1970_2000:
+      Zn: 0.03
+      Ni: 0.03
+      Sn: 0.01
+    baseline_growth_cagr_2000_2050:
+      Zn: 0.015
+      Ni: 0.02
+      Sn: 0.012
+    region_split_method: gdp_proxy
+    end_use_split_method: fixed_shares_by_material
+    end_use_share_default_by_material:
+      Zn:
+        construction: 0.55
+        machinery_and_equipment: 0.1
+        computers_and_precision_instruments: 0.02
+        electrical_equipment: 0.05
+        motor_vehicles_trailers_and_semi_trailers: 0.15
+        other_transport_equipment: 0.05
+        products_nec: 0.08
+      Ni:
+        construction: 0.2
+        machinery_and_equipment: 0.35
+        computers_and_precision_instruments: 0.05
+        electrical_equipment: 0.1
+        motor_vehicles_trailers_and_semi_trailers: 0.15
+        other_transport_equipment: 0.1
+        products_nec: 0.05
+      Sn:
+        construction: 0.05
+        machinery_and_equipment: 0.05
+        computers_and_precision_instruments: 0.1
+        electrical_equipment: 0.2
+        motor_vehicles_trailers_and_semi_trailers: 0.05
+        other_transport_equipment: 0.05
+        products_nec: 0.5
+  capacity:
+    all_stages_capacity_limited: true
+    capacity_source: computed_then_overridable_by_exogenous
+    utilization_target: 1.0
+    initial_slack_factor: 1.1
+    capacity_expansion_time_years: 5.0
+  r_strategies:
+    enabled: true
+    levers:
+      r0_refuse_reduce_demand_factor: 1.0
+      r4_repair_lifetime_extension_factor: 1.0
+      r6_recycle_collection_multiplier: 1.0
+      r7_recycle_yield_multiplier: 1.0
+    baseline_targets_2020:
+      collection_rate_frac:
+        EU27: 0.75
+        CHN: 0.55
+        ROW: 0.4
+      eol_recycling_rate_frac:
+        EU27:
+          Zn: 0.55
+          Ni: 0.65
+          Sn: 0.3
+        CHN:
+          Zn: 0.45
+          Ni: 0.55
+          Sn: 0.25
+        ROW:
+          Zn: 0.35
+          Ni: 0.45
+          Sn: 0.2
+    transition:
+      type: logistic
+      mid_year: 1995
+      steepness: 0.15

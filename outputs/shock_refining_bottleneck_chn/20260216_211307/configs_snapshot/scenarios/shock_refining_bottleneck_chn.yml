@@ -1,0 +1,24 @@
+schema_version: '1.0'
+id: shock_refining_bottleneck_chn
+inherits: baseline
+description: Refining bottleneck in CHN (maintenance shutdowns, regulation, feedstock
+  shortage).
+requires_user_inputs:
+- Affected materials and magnitude/duration.
+shocks:
+  capacity_stage_observed_kt_per_yr:
+    shape: pulse
+    start_year: 2030
+    duration_years: 3
+    multiplier: null
+    targets:
+      regions:
+      - CHN
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      stages:
+      - refining
+notes:
+- Often more impactful than mining shocks for refined metal availability.

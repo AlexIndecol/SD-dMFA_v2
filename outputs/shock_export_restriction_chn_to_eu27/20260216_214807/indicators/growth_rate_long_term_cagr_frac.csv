@@ -1,0 +1,2 @@
+note
+not computed; formula not implemented in engine: growth_rate_long_term_cagr_frac = (demand_end / demand_start)**(1/(year_end - year_start)) - 1

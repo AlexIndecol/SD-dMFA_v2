@@ -230,7 +230,7 @@ def main() -> None:
         params = deepcopy(parameters_cfg)
         params.setdefault("sd", {}).setdefault("capacity", {})["utilization_target"] = float(util)
 
-        dcal = params.setdefault("dmfa", {}).setdefault("fallback_calibration", {})
+        dcal = params.setdefault("dmfa", {}).setdefault("calibration", {})
         dcal["eol_outflow_multiplier"] = float(eol_mult)
         dcal["new_scrap_fraction_of_demand"] = float(new_scrap)
         dcal.setdefault("export_cap_fraction_by_commodity", {})
@@ -291,9 +291,9 @@ def main() -> None:
     best = results.iloc[0].to_dict()
     best_params = {
         "sd.capacity.utilization_target": float(best["utilization_target"]),
-        "dmfa.fallback_calibration.eol_outflow_multiplier": float(best["eol_outflow_multiplier"]),
-        "dmfa.fallback_calibration.new_scrap_fraction_of_demand": float(best["new_scrap_fraction_of_demand"]),
-        "dmfa.fallback_calibration.export_cap_fraction_by_commodity.refined_metal": float(
+        "dmfa.calibration.eol_outflow_multiplier": float(best["eol_outflow_multiplier"]),
+        "dmfa.calibration.new_scrap_fraction_of_demand": float(best["new_scrap_fraction_of_demand"]),
+        "dmfa.calibration.export_cap_fraction_by_commodity.refined_metal": float(
             best["refined_export_cap_fraction"]
         ),
     }

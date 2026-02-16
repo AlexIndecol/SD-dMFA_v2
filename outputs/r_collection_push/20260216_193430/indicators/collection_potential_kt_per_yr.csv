@@ -1,0 +1,2 @@
+note
+"not computed; formula not implemented in engine: collection_potential_kt_per_yr[t,r,(s)] = eol_outflow_kt_per_yr[t,r,(s)] * collection_rate_0_1[t,r,(s)]"

@@ -1,0 +1,17 @@
+scenarios:
+  baseline_guess: configs/scenarios/baseline_guess.yml
+  baseline: configs/scenarios/baseline.yml
+  r_collection_push: configs/scenarios/r_collection_push.yml
+  r_high_quality_recycling: configs/scenarios/r_high_quality_recycling.yml
+  r_reuse_reman: configs/scenarios/r_reuse_reman.yml
+  r_lifetime_extension: configs/scenarios/r_lifetime_extension.yml
+  r_demand_reduction: configs/scenarios/r_demand_reduction.yml
+  policy_package_circularity: configs/scenarios/policy_package_circularity.yml
+  shock_mining_disruption_chn: configs/scenarios/shock_mining_disruption_chn.yml
+  shock_refining_bottleneck_chn: configs/scenarios/shock_refining_bottleneck_chn.yml
+  shock_export_restriction_chn_to_eu27: configs/scenarios/shock_export_restriction_chn_to_eu27.yml
+  shock_battery_demand_boom_eu27: configs/scenarios/shock_battery_demand_boom_eu27.yml
+  shock_combo_refining_export: configs/scenarios/shock_combo_refining_export.yml
+schema_version: '1.1'
+description: Scenario registry (dict mapping id -> file). Blueprints may contain null
+  placeholders; do not run without user inputs.

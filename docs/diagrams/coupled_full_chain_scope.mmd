@@ -2,16 +2,28 @@
 %% Derived from configs/coupling.yml and configs/dimensions.yml
 
 flowchart LR
-  subgraph EXO[Exogenous Inputs]
-    EXO_DEMAND[demand_kt_per_yr]
-    EXO_COLL[collection_rate_0_1]
-    EXO_REC[recovery_rate_0_1]
-    EXO_YIELD[recycling_yield_0_1]
-    EXO_LIFE[lifetime_multiplier_ge_1]
-    EXO_CAP[capacity_stage_raw_kt_per_yr]
-    EXO_PRICE[price_index_rel optional]
-    EXO_ODW[od_preference_weight_0_1]
-    EXO_TF[trade_factor_i_ge_1]
+  subgraph EXO_FILE[File Exogenous Inputs data/exogenous]
+    F_GAS[gas_to_use_observed_kt_per_yr]
+    F_CAPOBS[capacity_stage_observed_kt_per_yr]
+    F_USESH[use_share_j_frac optional]
+    F_LIFEMU[lifetime_lognormal_mu]
+    F_LIFESIG[lifetime_lognormal_sigma]
+    F_LIFEMEAN[lifetime_mean_years optional]
+    F_ORE[ore_mined_kt_per_yr optional]
+    F_ODW[od_preference_weight_0_1]
+    F_TF[trade_factor_i_ge_1]
+    F_RES[resources_kt indicator input]
+    F_RESV[reserves_kt indicator input]
+  end
+
+  subgraph EXO_RUNTIME[Runtime Exchange Variables generated during run]
+    X_DEMAND[demand_kt_per_yr]
+    X_COLL[collection_rate_0_1]
+    X_REC[recovery_rate_0_1]
+    X_YIELD[recycling_yield_0_1]
+    X_LIFE[lifetime_multiplier_ge_1]
+    X_CAPRAW[capacity_stage_raw_kt_per_yr]
+    X_PRICE[price_index_rel optional]
   end
 
   subgraph SD[SD Model annual dynamics]
@@ -57,32 +69,43 @@ flowchart LR
   P7 --> P8 --> P4
   P7 --> P9 --> P10
 
-  EXO_DEMAND --> SD_DEM
-  EXO_COLL --> SD_LEV
-  EXO_REC --> SD_LEV
-  EXO_YIELD --> SD_LEV
-  EXO_LIFE --> SD_LEV
-  EXO_CAP --> SD_LEV
-  EXO_PRICE --> SD_SCAR
-  EXO_ODW --> TR_IN
-  EXO_TF --> TR_IN
+  F_GAS --> SD_DEM
+  F_CAPOBS --> SD_LEV
+  F_USESH --> SD_DEM
+  F_ODW --> TR_IN
+  F_TF --> TR_IN
+  F_LIFEMU --> P5
+  F_LIFESIG --> P5
+  F_LIFEMEAN --> P5
+  F_ORE --> P1
+  F_RES --> IND1
+  F_RESV --> IND1
 
   SD_DEM --> SD_SCAR
   SD_SCAR --> SD_LEV
   SD_LEV --> SD_DEM
 
-  SD_DEM -->|sd_to_dmfa demand_kt_per_yr| P4
-  SD_LEV -->|collection and recovery rates| P6
-  SD_LEV -->|recycling_yield_0_1| P8
-  SD_LEV -->|lifetime_multiplier_ge_1| P5
-  SD_LEV -->|capacity_stage_raw_kt_per_yr| P1
-  SD_SCAR -->|price_index_rel optional| P4
+  SD_DEM --> X_DEMAND
+  SD_LEV --> X_COLL
+  SD_LEV --> X_REC
+  SD_LEV --> X_YIELD
+  SD_LEV --> X_LIFE
+  SD_LEV --> X_CAPRAW
+  SD_SCAR --> X_PRICE
+
+  X_DEMAND -->|sd_to_dmfa| P4
+  X_COLL --> P6
+  X_REC --> P7
+  X_YIELD --> P8
+  X_LIFE --> P5
+  X_CAPRAW --> P1
+  X_PRICE --> P4
 
   P7 -->|s_sec_max_raw_kt_per_yr| STAB_SEC
   P1 -->|capacity signals| STAB_CAP
   P2 -->|capacity signals| STAB_CAP
   P3 -->|capacity signals| STAB_CAP
-  SD_SCAR -->|price smoothing input| STAB_PRICE
+  X_PRICE -->|price smoothing input| STAB_PRICE
 
   STAB_SEC --> SD_SCAR
   STAB_CAP --> SD_LEV

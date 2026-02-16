@@ -1,5 +1,13 @@
 # Assumptions to confirm
 
+Open confirmation (new):
+
+1) Stockpile indicator data source (medium impact)
+- Current TEMP implementation: use `stock_refined_metal_kt` as proxy for `stockpile_kt` / `stockpile_cover_years` when `stockpile_mass_kt` is unavailable.
+- Confirmation options:
+  - A) keep TEMP proxy until validated `stockpile_mass_kt` is sourced.
+  - B) require explicit `stockpile_mass_kt` and keep stockpile indicators NA until then.
+
 All previously open assumptions have been resolved:
 
 1) Missing-data handling outside the historic calibration window (accepted)
@@ -102,4 +110,39 @@ Verification run:
   - consistent with focused sweep best (`outputs/calibration/baseline/20260216_100712`).
 
 Open calibration confirmations:
+- none at this stage.
+
+## v4.9 indicator confirmations (resolved on 2026-02-16)
+
+Selections provided by user:
+- `1.A` keep `resource_depletion_time_years` as NA until `resources_kt` is populated.
+- `2.A` keep current internal-boundary convention for circularity inputs (`primary_input_*`, `secondary_input_*`, `old_scrap_recycled_*`).
+
+Implications:
+- `resource_depletion_time_years` remains non-numeric in current outputs until `data/exogenous/resources_kt.csv` is filled with numeric values.
+- Circularity headline indicators (`eol_rr_frac`, `eol_rir_frac`) continue using the fallback dMFA internal-boundary mapping currently implemented in engine outputs.
+
+Open confirmations:
+- none at this stage.
+
+## v4.9 scenario control calibration confirmation (resolved on 2026-02-16)
+
+Selection provided by user:
+- `1.B` enable a TEMP conservative auto-fill package for unresolved scenario magnitudes.
+
+Applied implementation:
+- Added `configs/scenario_autofill.yml` with conservative defaults for unresolved controls.
+- Wired autofill into control resolution and runtime application in:
+  - `src/crm_model/scenario_controls.py`
+  - `src/crm_model/coupling.py`
+  - `src/crm_model/run.py`
+- Extended run artifacts to expose autofill status:
+  - `run_metadata.yml`: `scenario_controls_autofill_enabled`, `scenario_controls_autofill_used`
+  - `run_note.md`: one-line autofill status in scenario-control summary.
+
+Governance:
+- Added TEMP assumption `scenario_control_autofill_conservative_temp` in `configs/assumptions.yml`.
+- Replacement path remains explicit: migrate to user-confirmed numeric magnitudes in `configs/scenarios/*.yml` and disable autofill.
+
+Open confirmations:
 - none at this stage.

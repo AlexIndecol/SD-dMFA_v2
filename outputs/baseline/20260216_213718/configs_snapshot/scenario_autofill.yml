@@ -1,0 +1,28 @@
+schema_version: "1.0"
+description: TEMP conservative autofill defaults for unresolved scenario control magnitudes.
+enabled: true
+policy_id: conservative_temp_v1
+defaults:
+  collection_rate_0_1:
+    multiplier: 1.03
+  recovery_rate_0_1:
+    multiplier: 1.03
+  recycling_yield_0_1:
+    multiplier: 1.01
+  demand_multiplier_0_1:
+    to: 0.95
+  demand_multiplier_ge_1:
+    to: 1.10
+  lifetime_multiplier_ge_1:
+    value: 1.08
+  capacity_stage_observed_kt_per_yr:
+    multiplier: 0.85
+  od_preference_weight_0_1:
+    multiplier: 0.40
+  trade_factor_i_ge_1:
+    value: 1.30
+  reuse_reman_share_of_eol_0_1:
+    from: 0.00
+    to: 0.10
+  end_use_detail_share_frac:
+    multiplier: 1.00

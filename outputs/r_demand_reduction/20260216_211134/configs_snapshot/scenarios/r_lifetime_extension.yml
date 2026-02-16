@@ -1,0 +1,27 @@
+schema_version: '1.0'
+id: r_lifetime_extension
+inherits: baseline
+description: Extend product lifetimes (slower turnover) via a multiplier applied to
+  lifetime parameters.
+requires_user_inputs:
+- Which lifetime parameterization is authoritative (mu/sigma or mean/min/max).
+- Lifetime extension factor (e.g., 1.10 for +10%) and targeted end-uses.
+levers:
+  lifetime_multiplier_ge_1:
+    shape: step
+    year: 2030
+    value: null
+    targets:
+      regions:
+      - EU27
+      materials:
+      - Zn
+      - Ni
+      - Sn
+      end_uses:
+      - construction
+      - machinery_and_equipment
+      - motor_vehicles_trailers_and_semi_trailers
+notes:
+- Implementation should modify lognormal mu consistently (mean scales ~exp(mu)).
+- Requires explicit code support; otherwise treat as documented scenario intention.

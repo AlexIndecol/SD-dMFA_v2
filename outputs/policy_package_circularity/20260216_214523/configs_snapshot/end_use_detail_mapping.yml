@@ -1,0 +1,18 @@
+end_use_detail_to_end_use:
+  residential_buildings: construction
+  non_residential_buildings: construction
+  roads: construction
+  civil_engineering: construction
+  machinery: machinery_and_equipment
+  computers: computers_and_precision_instruments
+  electrical_equipment: electrical_equipment
+  motor_vehicles: motor_vehicles_trailers_and_semi_trailers
+  other_transport_equipment: other_transport_equipment
+  furniture: products_nec
+  printed_matter_and_recorded_media: products_nec
+  food_packaging: products_nec
+  products_nec_other: products_nec
+  vehicle_batteries: motor_vehicles_trailers_and_semi_trailers
+  batteries_non_vehicle: electrical_equipment
+  pv_panels: electrical_equipment
+  magnets: machinery_and_equipment

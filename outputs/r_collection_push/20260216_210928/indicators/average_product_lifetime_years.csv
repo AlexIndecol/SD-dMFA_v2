@@ -1,0 +1,2 @@
+note
+not computed; formula not implemented in engine: average_product_lifetime_years = sum_a( a_years * lifetime_pdf_age_a )

@@ -1,0 +1,106 @@
+scenario_id: shock_combo_refining_export
+dry_run: false
+time:
+  start_year: 1820
+  end_year: 2100
+  dt_years: 1
+  time_index_name: t
+periods:
+  spinup:
+    start_year: 1820
+    end_year: 1870
+    inclusive_end: false
+    purpose: optional warm-up
+  historic:
+    start_year: 1870
+    end_year: 2019
+    inclusive_end: true
+    purpose: calibration
+  reporting:
+    start_year: 2020
+    end_year: 2100
+    inclusive_end: true
+    purpose: results
+missing_required_historic_inputs: []
+temp_covered_missing_required_historic_inputs: []
+scenario_controls_total: 3
+scenario_controls_resolved: 3
+scenario_controls_unresolved: []
+scenario_controls_autofill_enabled: true
+scenario_controls_autofill_used:
+- capacity_stage_observed_kt_per_yr
+- od_preference_weight_0_1
+- trade_factor_i_ge_1
+runtime_modules:
+  sd:
+    engine_requested: bptk-py
+    execution_mode: native_required
+    native_available: true
+    use_native: true
+  dmfa:
+    engine_requested: flodym
+    execution_mode: native_required
+    native_available: true
+    use_native: true
+series_written:
+- apparent_consumption_kt_per_yr
+- balancing_item_kt_per_yr
+- byproduct_primary_production_kt_per_yr
+- capacity_stage_observed_kt_per_yr
+- capacity_stage_raw_kt_per_yr
+- capacity_stage_to_sd_kt_per_yr
+- collection_rate_0_1
+- demand_kt_per_yr
+- domestic_production_kt_per_yr
+- end_use_detail_share_frac
+- eol_outflow_kt_per_yr
+- eol_recycling_kt_per_yr
+- exports_kt_per_yr
+- gas_to_use_observed_kt_per_yr
+- i_use_kt_per_yr
+- imports_kt_per_yr
+- in_use_stock_kt
+- in_use_stock_observed_kt
+- lifetime_lognormal_mu
+- lifetime_lognormal_sigma
+- lifetime_max_years
+- lifetime_mean_years
+- lifetime_min_years
+- lifetime_multiplier_ge_1
+- negativity_clipped_kt_per_yr
+- new_scrap_generated_kt_per_yr
+- nonsubstitutability_j_0_1
+- od_export_cap_kt_per_yr
+- od_preference_weight_0_1
+- od_trade_flow_kt_per_yr
+- old_scrap_generated_kt_per_yr
+- old_scrap_recycled_kt_per_yr
+- ore_mined_kt_per_yr
+- price_index_rel
+- price_to_sd_smoothed_rel
+- primary_input_kt_per_yr
+- primary_production_kt_per_yr
+- process_flow_kt_per_yr
+- recovery_rate_0_1
+- recycling_yield_0_1
+- reserves_kt
+- resources_kt
+- s_sec_max_raw_kt_per_yr
+- s_sec_max_to_sd_kt_per_yr
+- scrap_buffer_kt
+- scrap_release_kt_per_yr
+- secondary_input_old_scrap_kt_per_yr
+- secondary_input_total_kt_per_yr
+- secondary_production_kt_per_yr
+- share_i_frac
+- stock_change_kt_per_yr
+- stock_concentrate_kt
+- stock_refined_metal_kt
+- stock_scrap_kt
+- trade_factor_i_ge_1
+- unmet_demand_kt_per_yr
+- use_share_j_frac
+- wgi_norm_i_0_1
+note: 'v5.3: native-only coupled engine with full flodym MFASystem stage-network execution
+  for dMFA (SD requires BPTK-Py; dMFA requires flodym), with scenario-control wiring
+  and TEMP scenario autofill support.'
