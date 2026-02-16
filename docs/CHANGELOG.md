@@ -1,6 +1,141 @@
 # Changelog
 
+## v5.3
+- Migrated dMFA native runtime to explicit full flodym `MFASystem` process-network execution:
+  - `src/crm_model/dmfa_model.py` now builds a stage process network (`sysenv` + configured stages) with named flows across extraction, beneficiation, refining, fabrication/use, collection/sorting/recycling, residue treatment, environment, and trade-boundary interfaces.
+  - Runtime now computes and exports `process_flow_kt_per_yr` (long-form process-edge flow series) for diagnostics and inspection.
+- Coupling outputs now include process-network flow series:
+  - `src/crm_model/coupling.py`: `process_flow_kt_per_yr`.
+- Code cleanup/refactor (no behavior change):
+  - `src/crm_model/sd_model.py`: reduced repeated backend checks and vectorized baseline-demand/elasticity assignments for readability.
+  - `src/crm_model/dmfa_model.py`: centralized required stage/commodity constants and simplified process-flow definition construction.
+- Verification reruns after MFASystem migration:
+  - baseline: `outputs/baseline/20260216_213718`
+  - scenario: `outputs/r_collection_push/20260216_213814`
+  - both report `runtime_modules.*.execution_mode = native_required` and `use_native = true`.
+
+## v5.2
+- Final cleanup after fallback-execution purge:
+  - `src/crm_model/dmfa_model.py`: removed dead lifetime-extension helper from runtime module and centralized calibration-block resolution (`calibration` first, legacy `fallback_calibration` still accepted).
+  - `src/crm_model/coupling.py`: removed no-op export-cap rename and normalized stock-series slicing for readability.
+  - `configs/parameters/parameters_dmfa.yml`: renamed active parameter block from `fallback_calibration` to `calibration`.
+  - `scripts/calibration/run_baseline_calibration_loop.py`: switched calibration writes/overrides to `dmfa.calibration.*`.
+- Verification reruns after cleanup:
+  - baseline: `outputs/baseline/20260216_210400`
+  - scenario: `outputs/r_collection_push/20260216_210435`
+  - both report `runtime_modules.*.execution_mode = native_required` and `use_native = true`.
+
+## v5.1
+- Purged fallback execution mode from runtime code paths:
+  - `src/crm_model/sd_model.py` now accepts only `execution_mode: native_required`.
+  - `src/crm_model/dmfa_model.py` now accepts only `execution_mode: native_required`.
+- Cleaned model implementation by removing legacy mixed fallback/native dMFA path and keeping a single native flodym-array execution path.
+- Updated runtime metadata note in `src/crm_model/run.py` to explicitly state fallback execution removal.
+- Verification reruns after cleanup:
+  - baseline: `outputs/baseline/20260216_205554`
+  - scenario: `outputs/r_collection_push/20260216_205632`
+  - both report `runtime_modules.*.execution_mode = native_required` and `use_native = true`.
+
+## v5.0
+- Completed full native runtime migration for coupled annual runs:
+  - `src/crm_model/sd_model.py`: native BPTK-Py execution is now required for SD run steps; fallback execution is disabled.
+  - `src/crm_model/dmfa_model.py`: added full flodym-array native computation path for dMFA run steps; runtime fallback execution is disabled.
+- Switched coupling defaults to strict native execution:
+  - `configs/coupling.yml`: `modules.sd.execution_mode = native_required`
+  - `configs/coupling.yml`: `modules.dmfa.execution_mode = native_required`
+- Updated run metadata note/versioning for native-first runtime:
+  - `src/crm_model/run.py`: run note now `v5.0` and dry-run defaults reflect `native_required`.
+- Verification reruns:
+  - baseline: `outputs/baseline/20260216_204820`
+  - scenario: `outputs/r_collection_push/20260216_204635`
+  - both report `runtime_modules.*.execution_mode = native_required` and `use_native = true`.
+
+## v4.10
+- Activated native framework dispatch wiring for coupled runs:
+  - `src/crm_model/sd_model.py` now uses execution modes (`native_required`, `native_if_available`, `fallback_only`) and dispatches through BPTK-Py when available.
+  - `src/crm_model/dmfa_model.py` now uses the same execution-mode contract and dispatches through flodym-backed array operations when available.
+- Added explicit native-dispatch controls in `configs/coupling.yml`:
+  - `modules.sd.execution_mode`
+  - `modules.dmfa.execution_mode`
+- Extended run artifacts to expose actual runtime engine use:
+  - `src/crm_model/run.py` now writes `runtime_modules` in `run_metadata.yml` with `engine_requested`, `execution_mode`, `native_available`, and `use_native`.
+  - Updated run note/metadata wording from fallback-only to native-dispatch aware.
+- Verification reruns:
+  - baseline: `outputs/baseline/20260216_203603`
+  - scenario: `outputs/r_collection_push/20260216_203642`
+  - both report `use_native: true` for SD and dMFA in `run_metadata.yml`.
+
 ## v4.9
+- Closed headline computation gaps for updated reporting set:
+  - `apparent_consumption_kt_per_yr` now computed in `src/crm_model/indicators.py` (prefers direct coupled accounting series, with formula fallback).
+  - `stockpile_kt` and `stockpile_cover_years` now computed in `src/crm_model/indicators.py`.
+  - Added `domestic_production_kt_per_yr` and `stock_change_kt_per_yr` to coupled outputs in `src/crm_model/coupling.py`.
+- Added TEMP stockpile proxy governance:
+  - `configs/assumptions.yml`: `stockpile_proxy_from_refined_buffer_temp`.
+  - `docs/ASSUMPTIONS.md` updated accordingly.
+- Verification rerun (latest scenario requested):
+  - `outputs/r_collection_push/20260216_192200`
+  - all current headlines in `configs/reporting.yml` are now numeric in this run.
+- Fixed exogenous missing-policy enforcement in loader:
+  - `src/crm_model/io_exogenous.py` now applies `configs/data_sources.yml -> exogenous.missing_policy`
+    (`before_first_year`, `after_last_year`, `inside_gaps`) when reading exogenous CSVs.
+- Fixed SD demand fallback gating:
+  - `src/crm_model/sd_model.py` now uses observed GAS only when the year slice contains numeric values,
+    preventing all-NaN GAS rows from collapsing to zero demand via grouped sums.
+- Verification reruns after demand-path fix:
+  - baseline: `outputs/baseline/20260216_153435`
+  - scenario sweep (latest per scenario around `15:34:59..15:37:39`, 2026-02-16)
+  - comparison rebuilt: `outputs/comparisons/20260216_153822/*`
+- Resulting behavior change:
+  - reporting-period `demand_kt_per_yr` is no longer forced to zero by NaN GAS rows;
+    scenario headline deltas are materially non-zero for several scenarios.
+- Implemented user-selected scenario calibration option `1.B` (TEMP conservative autofill for unresolved control magnitudes):
+  - added `configs/scenario_autofill.yml`,
+  - loaded/passed autofill config through `src/crm_model/run.py` and `src/crm_model/coupling.py`,
+  - applied autofill at control-resolution and runtime application level in `src/crm_model/scenario_controls.py`.
+- Extended run artifacts for TEMP autofill transparency:
+  - `run_metadata.yml` now includes `scenario_controls_autofill_enabled` and `scenario_controls_autofill_used`,
+  - `run_note.md` now includes autofill status in scenario-control summary.
+- Fixed control application bounds so `_0_1` variables can increase via multipliers while still clipping final applied values to `[0,1]`.
+- Verification outputs for `1.B` implementation:
+  - `outputs/baseline/20260216_140102`
+  - `outputs/r_collection_push/20260216_140405`
+  - `outputs/shock_combo_refining_export/20260216_140437`
+- Activated scenario control wiring in runtime coupled execution:
+  - added `src/crm_model/scenario_controls.py`,
+  - integrated control application into `src/crm_model/coupling.py` for SD inputs, SD->dMFA exchanges, and trade inputs,
+  - added scenario control resolution reporting in `src/crm_model/run.py` (`scenario_controls_*` in `run_metadata.yml`, plus run-note summary).
+- Verification outputs:
+  - `outputs/baseline/20260216_133634`
+  - `outputs/r_collection_push/20260216_133700`
+- Corrected full-chain workflow visual semantics in:
+  - `docs/diagrams/coupled_full_chain_scope.mmd`
+  - `docs/WORKFLOW_VISUALS.md`
+  - exogenous section now distinguishes file exogenous CSV inputs from runtime exchange variables generated during coupling.
+- Closed indicator-assumption confirmations with user selections:
+  - `1.A` keep `resource_depletion_time_years` as NA until `resources_kt` is populated,
+  - `2.A` keep internal-boundary circularity input convention.
+- Recorded confirmations in:
+  - `configs/assumptions.yml`
+  - `docs/ASSUMPTIONS_TO_CONFIRM.md`
+  - `docs/DECISION_LOG.md`
+- Implemented missing headline indicator formulas in `src/crm_model/indicators.py`:
+  - `hhi_generic_0_1` (`sum_i share_i^2`)
+  - `eol_rr_frac` (`old_scrap_recycled / old_scrap_generated`)
+  - `eol_rir_frac` (`secondary_input_old_scrap / (primary_input + secondary_input_total)`)
+  - `resource_depletion_time_years` (`resources / primary_production`)
+- Extended dMFA/coupling outputs with explicit indicator input series so headline circularity indicators are computable from model outputs:
+  - `old_scrap_recycled_kt_per_yr`
+  - `primary_input_kt_per_yr`
+  - `secondary_input_old_scrap_kt_per_yr`
+  - `secondary_input_total_kt_per_yr`
+- Reran baseline + scenario suite with updated indicator engine:
+  - baseline: `outputs/baseline/20260216_124757`
+  - scenarios: latest timestamps under each scenario folder at `~12:49:05..12:51:42` (2026-02-16)
+- Rebuilt headline comparison table with updated indicator coverage:
+  - `outputs/comparisons/20260216_125230/baseline_vs_scenarios_headline_indicators.csv`
+  - `outputs/comparisons/20260216_125230/baseline_vs_scenarios_headline_indicators.md`
+  - status summary: `66 ok`, `11 baseline_no_numeric_reporting;scenario_no_numeric_reporting` (all on `resource_depletion_time_years` due empty `resources_kt` data).
 - Filled required baseline historic exogenous inputs using CRM source data and internal cross-checks:
   - `data/exogenous/in_use_stock_observed_kt.csv`
   - `data/exogenous/gas_to_use_observed_kt_per_yr.csv`

@@ -1,9 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
+
+
+_EXECUTION_MODE = "native_required"
 
 
 @dataclass
@@ -14,16 +17,58 @@ class SDOutputs:
     price_index_rel: Optional[Any] = None
 
 
-def build_sd_model(configs: Dict[str, Any]) -> Any:
-    """Build SD model (BPTK-Py) from configuration.
+def _import_bptk_module() -> Optional[Any]:
+    for mod_name in ("BPTK_Py", "bptk_py"):
+        try:
+            return __import__(mod_name)
+        except Exception:
+            continue
+    return None
 
-    The coupled fallback remains runnable even if BPTK-Py is unavailable.
-    """
-    try:
-        import bptk_py  # type: ignore
-    except Exception:
-        bptk_py = None
-    return {"engine": "bptk-py", "available": bptk_py is not None, "configs": configs}
+
+def _require_bptk_model_cls(native_backend: Any) -> Any:
+    model_cls = getattr(native_backend, "Model", None)
+    if model_cls is None:
+        raise RuntimeError("BPTK-Py backend unavailable for native SD execution.")
+    return model_cls
+
+
+def _resolve_native_sd_config(configs: Dict[str, Any]) -> tuple[str, str]:
+    coupling_cfg = configs.get("coupling", {}) or {}
+    sd_module_cfg = (coupling_cfg.get("modules", {}) or {}).get("sd", {}) or {}
+    engine_requested = str(sd_module_cfg.get("engine", "bptk-py")).strip().lower()
+    mode_requested = str(sd_module_cfg.get("execution_mode", _EXECUTION_MODE)).strip().lower()
+
+    if engine_requested != "bptk-py":
+        raise ValueError(
+            f"Unsupported SD engine '{engine_requested}'. "
+            "Full native runtime requires coupling.modules.sd.engine='bptk-py'."
+        )
+    if mode_requested != _EXECUTION_MODE:
+        raise ValueError(
+            f"Unsupported SD execution mode '{mode_requested}'. "
+            "Fallback execution mode has been removed; use execution_mode='native_required'."
+        )
+    return engine_requested, mode_requested
+
+
+def build_sd_model(configs: Dict[str, Any]) -> Any:
+    """Build strict native SD runtime contract."""
+    engine_requested, execution_mode = _resolve_native_sd_config(configs)
+    bptk_mod = _import_bptk_module()
+    if bptk_mod is None:
+        raise RuntimeError(
+            "SD native engine required but BPTK-Py is unavailable. "
+            "Install module 'BPTK_Py' in the active environment."
+        )
+    return {
+        "engine": engine_requested,
+        "execution_mode": execution_mode,
+        "native_available": True,
+        "use_native": True,
+        "native_backend": bptk_mod,
+        "configs": configs,
+    }
 
 
 def _year(df: Optional[pd.DataFrame], year: int) -> pd.DataFrame:
@@ -88,8 +133,63 @@ def _default_use_share(base_rmj: pd.DataFrame, sd_cfg: Dict[str, Any], year: int
     return pd.DataFrame(rows)
 
 
-def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
-    """Run one SD timestep with a deterministic fallback implementation."""
+def _make_bptk_price_adjust(native_backend: Any) -> Callable[[float, float, float], float]:
+    model_cls = _require_bptk_model_cls(native_backend)
+
+    def _adjust(demand_value: float, price_value: float, elasticity: float) -> float:
+        mdl = model_cls(starttime=0.0, stoptime=0.0, dt=1.0, name="sd_price_adjust")
+        d = mdl.constant("d")
+        p = mdl.constant("p")
+        e = mdl.constant("e")
+        y = mdl.converter("y")
+        d.equation = float(demand_value)
+        p.equation = float(max(float(price_value), 1e-6))
+        e.equation = float(elasticity)
+        y.equation = d * (p**e)
+        return float(mdl.equation("y", 0.0))
+
+    return _adjust
+
+
+def _make_bptk_scale(native_backend: Any) -> Callable[[float, float], float]:
+    model_cls = _require_bptk_model_cls(native_backend)
+
+    def _scale(base_value: float, scale_value: float) -> float:
+        mdl = model_cls(starttime=0.0, stoptime=0.0, dt=1.0, name="sd_scale")
+        b = mdl.constant("b")
+        s = mdl.constant("s")
+        y = mdl.converter("y")
+        b.equation = float(base_value)
+        s.equation = float(scale_value)
+        y.equation = b * s
+        return float(mdl.equation("y", 0.0))
+
+    return _scale
+
+
+def _make_bptk_identity(native_backend: Any) -> Callable[[float], float]:
+    model_cls = _require_bptk_model_cls(native_backend)
+
+    def _identity(value: float) -> float:
+        mdl = model_cls(starttime=0.0, stoptime=0.0, dt=1.0, name="sd_identity")
+        x = mdl.constant("x")
+        y = mdl.converter("y")
+        x.equation = float(value)
+        y.equation = x
+        return float(mdl.equation("y", 0.0))
+
+    return _identity
+
+
+def _run_sd_step_impl(
+    model: Any,
+    inputs: Dict[str, Any],
+    year: int,
+    *,
+    price_adjust: Callable[[float, float, float], float],
+    scale_fn: Callable[[float, float], float],
+    identity_fn: Callable[[float], float],
+) -> SDOutputs:
     cfg = model.get("configs", {})
     sd_cfg = cfg.get("parameters", {}).get("sd", {}) or {}
     dims = cfg.get("dimensions", {}).get("dimensions", {}) or {}
@@ -105,8 +205,16 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
     demand["t"] = year
     demand["value"] = 0.0
 
-    if not gas.empty and {"r", "m", "j", "value"}.issubset(gas.columns):
-        gas2 = gas.groupby(["r", "m", "j"], as_index=False)["value"].sum()
+    gas_has_numeric = (
+        not gas.empty
+        and {"r", "m", "j", "value"}.issubset(gas.columns)
+        and pd.to_numeric(gas["value"], errors="coerce").notna().any()
+    )
+
+    if gas_has_numeric:
+        gas2 = gas.copy()
+        gas2["value"] = pd.to_numeric(gas2["value"], errors="coerce")
+        gas2 = gas2.groupby(["r", "m", "j"], as_index=False)["value"].sum(min_count=1)
         demand = demand.merge(gas2, on=["r", "m", "j"], how="left", suffixes=("", "_obs"))
         demand["value"] = demand["value_obs"].fillna(0.0)
         demand = demand[["t", "r", "m", "j", "value"]]
@@ -127,9 +235,8 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
             demand = demand.merge(u, on=["m", "j"], how="left", suffixes=("", "_share"))
             demand["value_share"] = demand["value_share"].fillna(0.0)
             demand["regions_n"] = demand.groupby(["m", "j"])["r"].transform("nunique").clip(lower=1)
-            demand["value"] = demand.apply(
-                lambda x: baseline.get(x["m"], 0.0) * x["value_share"] / x["regions_n"], axis=1
-            )
+            demand["baseline_m"] = demand["m"].map(baseline).fillna(0.0)
+            demand["value"] = demand["baseline_m"] * demand["value_share"] / demand["regions_n"]
             demand = demand[["t", "r", "m", "j", "value"]]
 
     # Price feedback.
@@ -143,9 +250,13 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
         price = _build_price(rm, year, inputs.get("price_to_sd_smoothed_rel"))
         demand = demand.merge(price, on=["t", "r", "m"], how="left", suffixes=("", "_price"))
         demand["value_price"] = demand["value_price"].fillna(1.0)
-        demand["elast"] = demand["m"].map(lambda x: float(elasticity.get(x, 0.0)))
-        demand["value"] = demand["value"] * np.power(np.maximum(demand["value_price"], 1e-6), demand["elast"])
+        demand["elast"] = pd.to_numeric(demand["m"].map(elasticity), errors="coerce").fillna(0.0)
+        demand["value"] = demand.apply(
+            lambda x: price_adjust(float(x["value"]), float(x["value_price"]), float(x["elast"])),
+            axis=1,
+        )
         demand = demand[["t", "r", "m", "j", "value"]]
+        demand["value"] = demand["value"].map(identity_fn)
 
     # Capacity from observed exogenous if provided, else infer from demand total.
     cap_obs = _year(inputs.get("capacity_stage_observed_kt_per_yr"), year)
@@ -155,13 +266,13 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
     if not cap_obs.empty and {"r", "m", "p", "value"}.issubset(cap_obs.columns):
         c = cap_obs.groupby(["r", "m", "p"], as_index=False)["value"].sum()
         cap = cap.merge(c, on=["r", "m", "p"], how="left", suffixes=("", "_obs"))
-        cap["value"] = cap["value_obs"].fillna(0.0)
+        cap["value"] = cap["value_obs"].fillna(0.0).map(identity_fn)
         cap = cap[["t", "r", "m", "p", "value"]]
     else:
         dem_rm = demand.groupby(["r", "m"], as_index=False)["value"].sum().rename(columns={"value": "dem"})
         cap = cap.merge(dem_rm, on=["r", "m"], how="left")
         slack = float(sd_cfg.get("capacity", {}).get("initial_slack_factor", 1.1))
-        cap["value"] = cap["dem"].fillna(0.0) * slack
+        cap["value"] = cap["dem"].fillna(0.0).map(lambda v: scale_fn(float(v), slack))
         cap = cap[["t", "r", "m", "p", "value"]]
 
     # R-strategy rates by region/material (passed as side-channel to DMFA).
@@ -181,23 +292,26 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
 
     collection = base_rm.copy()
     collection["t"] = year
-    collection["value"] = collection["r"].map(lambda r: float(coll_base.get(r, 0.5))).clip(0.0, 1.0)
+    collection["value"] = collection["r"].map(lambda r: float(coll_base.get(r, 0.5))).clip(0.0, 1.0).map(identity_fn)
 
     recovery = base_rm.copy()
     recovery["t"] = year
     recovery["value"] = recovery.apply(
         lambda x: float((rr_base.get(x["r"], {}) or {}).get(x["m"], 0.4)), axis=1
-    ).clip(0.0, 1.0)
+    ).clip(0.0, 1.0).map(identity_fn)
 
     recycling_yield = base_rm.copy()
     recycling_yield["t"] = year
     recycling_yield["value"] = 0.9
+    recycling_yield["value"] = recycling_yield["value"].map(identity_fn)
 
     life_mult = base_rmj.copy()
     life_mult["t"] = year
     life_mult["value"] = 1.0
+    life_mult["value"] = life_mult["value"].map(identity_fn)
 
     price_out = _build_price(base_rm, year, inputs.get("price_to_sd_smoothed_rel"))
+    price_out["value"] = price_out["value"].map(identity_fn)
 
     inputs["collection_rate_0_1_year"] = collection[["t", "r", "m", "value"]]
     inputs["recovery_rate_0_1_year"] = recovery[["t", "r", "m", "value"]]
@@ -208,4 +322,28 @@ def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
         capacity_stage_raw_kt_per_yr=cap[["t", "r", "m", "p", "value"]],
         lifetime_multiplier_ge_1=life_mult[["t", "r", "m", "j", "value"]],
         price_index_rel=price_out[["t", "r", "m", "value"]],
+    )
+
+
+def _run_sd_step_native_bptk(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
+    adjust = _make_bptk_price_adjust(model.get("native_backend"))
+    scale_fn = _make_bptk_scale(model.get("native_backend"))
+    identity_fn = _make_bptk_identity(model.get("native_backend"))
+    return _run_sd_step_impl(
+        model=model,
+        inputs=inputs,
+        year=year,
+        price_adjust=adjust,
+        scale_fn=scale_fn,
+        identity_fn=identity_fn,
+    )
+
+
+def run_sd_step(model: Any, inputs: Dict[str, Any], year: int) -> SDOutputs:
+    """Run one SD timestep with native BPTK execution."""
+    if bool(model.get("use_native", False)) and model.get("engine") == "bptk-py":
+        return _run_sd_step_native_bptk(model, inputs, year)
+    raise RuntimeError(
+        "SD native runtime unavailable. Full native migration requires BPTK-Py. "
+        "Ensure coupling.modules.sd.execution_mode='native_required' and dependency installed."
     )
