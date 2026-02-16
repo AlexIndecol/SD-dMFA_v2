@@ -1,0 +1,24 @@
+status: TEMP
+notes:
+- Calibration objective uses weighted MAPE on historic i_use vs GAS observed and in_use_stock
+  vs observed stock.
+- Search grid is coarse first-pass and intended for narrowing before final calibration.
+objective_weights:
+  i_use: 0.5
+  stock: 0.5
+grid:
+  utilization_target:
+  - 0.75
+  - 0.85
+  - 0.95
+  - 1.05
+  eol_outflow_multiplier:
+  - 0.85
+  - 1.0
+  - 1.15
+  refined_export_cap_fraction:
+  - 0.05
+  - 0.1
+  - 0.15
+  new_scrap_fraction_of_demand:
+  - 0.05

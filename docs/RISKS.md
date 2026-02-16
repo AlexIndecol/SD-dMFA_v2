@@ -1,5 +1,23 @@
 # RISKS
 
+## v4.9 calibration-loop risk addendum
+
+1. Objective weighting risk (high)
+- Calibration ranking currently uses a TEMP weighted MAPE objective (`0.5*i_use + 0.5*stock`).
+- Mitigation: treat weights as decision variables; rerun sweep if decision priority is stock-first or flow-first.
+
+2. Parameter plausibility risk (high)
+- Best coarse candidate increases `sd.capacity.utilization_target` to `1.05`, which can exceed strict physical utilization interpretation.
+- Mitigation: interpret as effective fallback throughput factor, or constrain second-pass search to `<=1.0`.
+
+3. Search granularity risk (medium)
+- First sweep is coarse and may miss better local optima.
+- Mitigation: run a narrowed second-pass around top candidates and optionally include additional knobs (e.g., new-scrap fraction).
+
+4. Adoption-lag risk (medium)
+- Previously open while waiting for adoption confirmation; now mitigated by applying the focused constrained candidate.
+- Residual mitigation: keep calibration outputs/versioned so future re-tuning remains traceable.
+
 ## v4.9 trade-data risk addendum
 
 1. HS concordance interpretation risk (high)

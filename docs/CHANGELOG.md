@@ -31,6 +31,25 @@
 - Added a detailed full-chain architecture diagram for dMFA + SD coupling + OD trade:
   - `docs/diagrams/coupled_full_chain_scope.mmd`,
   - embedded in `docs/WORKFLOW_VISUALS.md`.
+- Made fallback dMFA calibration knobs explicit in config (default behavior unchanged):
+  - `configs/parameters/parameters_dmfa.yml` now includes `fallback_calibration` with
+    `new_scrap_fraction_of_demand`, `eol_outflow_multiplier`, and commodity export-cap fractions.
+- Updated fallback dMFA implementation to read calibration knobs from config:
+  - `src/crm_model/dmfa_model.py`.
+- Added reproducible baseline calibration sweep script:
+  - `scripts/calibration/run_baseline_calibration_loop.py`.
+- Executed first coarse calibration sweep and exported ranked candidates:
+  - `outputs/calibration/baseline/20260216_091918/*`.
+- Recorded user calibration choices (`1.A`, `2.B`, `3.B`) and executed constrained second-pass calibration (equal weights, `utilization_target <= 1.0`) without applying overrides yet:
+  - `outputs/calibration/baseline/20260216_093512/*` (detailed constrained sweep),
+  - `outputs/calibration/baseline/20260216_094654/*` (constrained quick-check sweep).
+- Executed an additional focused constrained sweep after user selected non-adoption (`Option B`) to refine `new_scrap_fraction_of_demand` and `refined_export_cap_fraction`:
+  - `outputs/calibration/baseline/20260216_100712/*`,
+  - focused best objective improved to `0.220885` under `utilization_target=1.0`.
+- Adopted focused constrained best candidate into baseline parameter configs and reran full baseline:
+  - `configs/parameters/parameters_sd.yml`: `utilization_target = 1.0`
+  - `configs/parameters/parameters_dmfa.yml`: `new_scrap_fraction_of_demand = 0.07`, `refined_export_cap_fraction = 0.19`, `eol_outflow_multiplier = 1.0`
+  - run output: `outputs/baseline/20260216_101506/*`
 - Added preconfigured inspection notebooks in-repo:
   - `notebooks/00_Quickstart.ipynb` through `notebooks/06_Indicators_Viewer.ipynb`,
   - `notebooks/README.md`.

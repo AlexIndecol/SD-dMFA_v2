@@ -1,0 +1,12 @@
+trade:
+  method: od_preference_with_capacity_ceilings
+  weights_source: exogenous
+  weights_variable: od_preference_weight_0_1
+  trade_factor_variable: trade_factor_i_ge_1
+  apply_capacity_ceiling_origin: true
+  apply_capacity_ceiling_destination: true
+  commodities:
+  - concentrate
+  - refined_metal
+  - scrap
+  notes: OD allocation uses preference weights, then is truncated by smoothed capacity ceilings.

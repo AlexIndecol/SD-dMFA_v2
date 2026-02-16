@@ -10,8 +10,14 @@ Build an executable baseline of the coupled SD + dMFA + OD-trade model using con
 - Validators run successfully.
 
 ## Needed User Inputs
-- None for baseline exogenous population task (v4.9 confirmations closed).
+- None currently open for baseline calibration adoption.
 
 ## Status
-- Current phase: Required historic exogenous baseline inputs populated and validated.
-- Next phase: proceed to calibration/testing runs.
+- Current phase: Baseline fallback calibration adopted and verified.
+- Latest outputs:
+  - `outputs/calibration/baseline/20260216_091918`
+  - `outputs/calibration/baseline/20260216_093512` (constrained detailed second pass)
+  - `outputs/calibration/baseline/20260216_094654` (constrained quick-check sweep)
+  - `outputs/calibration/baseline/20260216_100712` (focused constrained refinement)
+  - `outputs/baseline/20260216_101506` (baseline rerun after focused candidate adoption)
+- Next phase: proceed to scenario testing/sensitivity analysis using adopted baseline calibration settings.

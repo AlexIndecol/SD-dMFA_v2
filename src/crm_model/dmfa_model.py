@@ -105,6 +105,20 @@ def run_dmfa_step(model: Any, inputs: Dict[str, Any], year: int) -> DMFAOutputs:
     """Run one dMFA timestep with mass-balance preserving fallback equations."""
     cfg = model.get("configs", {})
     sd_cfg = cfg.get("parameters", {}).get("sd", {}) or {}
+    dmfa_cfg = cfg.get("parameters", {}).get("dmfa", {}) or {}
+    fallback_cfg = dmfa_cfg.get("fallback_calibration", {}) or {}
+
+    new_scrap_frac = float(fallback_cfg.get("new_scrap_fraction_of_demand", 0.05))
+    new_scrap_frac = float(np.clip(new_scrap_frac, 0.0, 1.0))
+    eol_outflow_mult = float(fallback_cfg.get("eol_outflow_multiplier", 1.0))
+    eol_outflow_mult = float(np.clip(eol_outflow_mult, 0.01, 5.0))
+    exp_cap_frac = fallback_cfg.get("export_cap_fraction_by_commodity", {}) or {}
+    exp_cap_ref = float(exp_cap_frac.get("refined_metal", 0.10))
+    exp_cap_scr = float(exp_cap_frac.get("scrap", 0.20))
+    exp_cap_con = float(exp_cap_frac.get("concentrate", 0.20))
+    exp_cap_ref = float(np.clip(exp_cap_ref, 0.0, 1.0))
+    exp_cap_scr = float(np.clip(exp_cap_scr, 0.0, 1.0))
+    exp_cap_con = float(np.clip(exp_cap_con, 0.0, 1.0))
 
     base_rmj = inputs.get("base_rmj")
     base_rmc = inputs.get("base_rmc")
@@ -137,7 +151,7 @@ def run_dmfa_step(model: Any, inputs: Dict[str, Any], year: int) -> DMFAOutputs:
     eol = eol.merge(life_mult, on=["r", "m", "j"], how="left")
     eol["life_mean"] = eol["life_mean"].fillna(20.0).clip(lower=1.0)
     eol["life_mult"] = eol["life_mult"].fillna(1.0).clip(lower=1.0)
-    eol["value"] = eol["value"] / (eol["life_mean"] * eol["life_mult"])
+    eol["value"] = (eol["value"] / (eol["life_mean"] * eol["life_mult"])) * eol_outflow_mult
     eol["t"] = year
     eol = eol[["t", "r", "m", "j", "value"]]
 
@@ -153,7 +167,7 @@ def run_dmfa_step(model: Any, inputs: Dict[str, Any], year: int) -> DMFAOutputs:
     old_scrap = old_scrap[["t", "r", "m", "j", "value"]]
 
     new_scrap = demand.copy()
-    new_scrap["value"] = new_scrap["value"] * 0.05
+    new_scrap["value"] = new_scrap["value"] * new_scrap_frac
 
     # Secondary production.
     scrap_rm = pd.concat([
@@ -324,8 +338,8 @@ def run_dmfa_step(model: Any, inputs: Dict[str, Any], year: int) -> DMFAOutputs:
     # Export caps for OD allocator (conservative fractions of available stocks).
     exp_cap = stock_out.copy()
     exp_cap["value"] = np.where(
-        exp_cap["c"] == "refined_metal", exp_cap["value"] * 0.10,
-        np.where(exp_cap["c"] == "scrap", exp_cap["value"] * 0.20, exp_cap["value"] * 0.20),
+        exp_cap["c"] == "refined_metal", exp_cap["value"] * exp_cap_ref,
+        np.where(exp_cap["c"] == "scrap", exp_cap["value"] * exp_cap_scr, exp_cap["value"] * exp_cap_con),
     )
 
     # Primary/secondary summaries.

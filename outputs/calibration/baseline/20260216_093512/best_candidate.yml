@@ -1,0 +1,29 @@
+scenario: baseline
+historic_window:
+  start_year: 1870
+  end_year: 2019
+run_window:
+  start_year: 1820
+  end_year: 2019
+objective:
+  type: weighted_mape
+  weight_i_use: 0.5
+  weight_stock: 0.5
+best_candidate:
+  candidate_id: 72.0
+  utilization_target: 1.0
+  eol_outflow_multiplier: 1.0
+  refined_export_cap_fraction: 0.17
+  new_scrap_fraction_of_demand: 0.06
+  mae_i_use: 1.3245236535603295
+  rmse_i_use: 5.373099335827766
+  mape_i_use: 0.16750166780623565
+  mae_stock: 56.254980855015425
+  rmse_stock: 189.45647404428502
+  mape_stock: 0.2778049093894114
+  objective_weighted_mape: 0.22265328859782352
+recommended_parameter_overrides:
+  sd.capacity.utilization_target: 1.0
+  dmfa.fallback_calibration.eol_outflow_multiplier: 1.0
+  dmfa.fallback_calibration.new_scrap_fraction_of_demand: 0.06
+  dmfa.fallback_calibration.export_cap_fraction_by_commodity.refined_metal: 0.17
