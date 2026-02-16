@@ -28,6 +28,9 @@
 - Added workflow visualization docs:
   - `docs/WORKFLOW_VISUALS.md` (embedded Mermaid diagrams for coupled model and baseline exogenous ETL),
   - `docs/diagrams/exogenous_baseline_workflow.mmd`.
+- Added a detailed full-chain architecture diagram for dMFA + SD coupling + OD trade:
+  - `docs/diagrams/coupled_full_chain_scope.mmd`,
+  - embedded in `docs/WORKFLOW_VISUALS.md`.
 - Added preconfigured inspection notebooks in-repo:
   - `notebooks/00_Quickstart.ipynb` through `notebooks/06_Indicators_Viewer.ipynb`,
   - `notebooks/README.md`.
